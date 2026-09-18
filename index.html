@@ -865,6 +865,18 @@
         if (b) {
           b.name = name;
           b.globalCapital = globalCapital; 
+          // Si le capital a changé, on trace l'évolution dans l'historique
+        if (b.globalCapital !== globalCapital) {
+          b.globalCapital = globalCapital;
+          if (!Array.isArray(b.history)) b.history = [];
+          b.history.push({
+            date: new Date().toISOString(),
+            type: 'capital_update',
+            amount: 0,
+            cumulTransferred: b.transferred || 0,
+            globalCapital: globalCapital
+          });
+        }
           b.myMonthly = myMonthly;
           b.capMonth = capMonth; 
           b.ruleDesc = ruleDesc;
@@ -1127,32 +1139,138 @@
       const b = db.beneficiaries.find(i => i.id === bId);
       if (!b) return;
 
-      document.getElementById('m-history-title').innerText = `📜 Mouvements de ${b.name}`;
+      document.getElementById('m-history-title').innerText = `📜 Progression & Mouvements de ${b.name}`;
       const content = document.getElementById('m-history-content');
       content.innerHTML = '';
 
-      if (!Array.isArray(b.history) || b.history.length === 0) {
-        content.innerHTML = `<div style="text-align:center; opacity:0.6; font-size:0.8rem; padding:12px;">Aucun mouvement enregistré.</div>`;
-      } else {
-        b.history.slice().reverse().forEach(h => {
-          const dateStr = new Date(h.date).toLocaleDateString(db.lang === 'en' ? 'en-US' : 'fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
-          const isWithdraw = h.amount > 0;
-          const color = isWithdraw ? 'var(--accent-yellow-bright)' : 'var(--accent-green-bright)';
-          const label = isWithdraw ? (db.lang === 'en' ? 'Withdrawal' : 'Déversement') : (db.lang === 'en' ? 'Reload' : 'Rechargement');
-          const sign = isWithdraw ? '-' : '+';
-          const valAbs = Math.abs(h.amount);
+      const currentTransferred = b.transferred || 0;
+      const currentCapital = b.globalCapital || 0;
+      const sharePct = currentCapital > 0 ? Math.min(100, Math.round((currentTransferred / currentCapital) * 100)) : 0;
 
-          content.innerHTML += `
-            <div class="history-item">
-              <div>
-                <strong style="color:${color};">${label}</strong>
-                <div style="font-size:0.7rem; opacity:0.6;">${dateStr}</div>
-              </div>
-              <strong style="color:${color}; font-size:0.9rem;">${sign}${fmt(valAbs)}</strong>
-            </div>
-          `;
+      // 1. Préparation des points chronologiques pour le graphique
+      let dataPoints = [];
+      let runningTransferred = 0;
+
+      if (Array.isArray(b.history)) {
+        b.history.forEach(h => {
+          if (h.cumulTransferred !== undefined) {
+            runningTransferred = h.cumulTransferred;
+          } else if (h.amount > 0) {
+            runningTransferred += h.amount;
+          }
+          const cap = h.globalCapital !== undefined && h.globalCapital > 0 ? h.globalCapital : currentCapital;
+          dataPoints.push({
+            date: h.date,
+            capital: cap,
+            transferred: runningTransferred
+          });
         });
       }
+
+      // Toujours inclure le point actuel à la fin
+      dataPoints.push({
+        date: new Date().toISOString(),
+        capital: currentCapital,
+        transferred: currentTransferred
+      });
+
+      // 2. Génération du Graphique SVG
+      let chartHTML = '';
+      if (currentCapital > 0 || currentTransferred > 0) {
+        const W = 360, H = 120, padX = 20, padY = 16;
+        const maxVal = Math.max(...dataPoints.map(p => Math.max(p.capital, p.transferred)), 1);
+
+        const getX = (idx) => padX + (idx / Math.max(dataPoints.length - 1, 1)) * (W - padX * 2);
+        const getY = (val) => H - padY - (val / maxVal) * (H - padY * 2);
+
+        let pathCap = '';
+        let pathTrans = '';
+
+        dataPoints.forEach((p, idx) => {
+          const x = getX(idx);
+          const yCap = getY(p.capital);
+          const yTrans = getY(p.transferred);
+
+          pathCap += (idx === 0 ? `M ${x} ${yCap}` : ` L ${x} ${yCap}`);
+          pathTrans += (idx === 0 ? `M ${x} ${yTrans}` : ` L ${x} ${yTrans}`);
+        });
+
+        chartHTML = `
+          <!-- Synthèse Chiffrée -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; text-align: center;">
+            <div>
+              <div style="font-size: 0.68rem; color: var(--accent-blue); font-weight: bold;">📈 CAPITAL BOURSE</div>
+              <strong style="color: var(--text-bright); font-size: 0.95rem;">${fmt(currentCapital)}</strong>
+            </div>
+            <div style="border-left: 1px solid var(--border-color);">
+              <div style="font-size: 0.68rem; color: var(--accent-yellow-bright); font-weight: bold;">⚡ TRANSMIS PAR TOI</div>
+              <strong style="color: var(--accent-yellow-bright); font-size: 0.95rem;">${fmt(currentTransferred)} <span style="font-size:0.75rem; opacity:0.8;">(${sharePct}%)</span></strong>
+            </div>
+          </div>
+
+          <!-- Courbes SVG Dynamiques -->
+          <div style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 6px 4px; margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.68rem; padding: 0 6px 4px 6px; font-weight: bold;">
+              <span style="color: var(--accent-blue); display: flex; align-items: center; gap: 4px;">● Capital Bourse Global</span>
+              <span style="color: var(--accent-yellow-bright); display: flex; align-items: center; gap: 4px;">● Total Transmis</span>
+            </div>
+            <svg width="100%" height="110" viewBox="0 0 ${W} ${H}" style="overflow: visible;">
+              <!-- Lignes de repère -->
+              <line x1="${padX}" y1="${getY(0)}" x2="${W - padX}" y2="${getY(0)}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2 2" />
+              <line x1="${padX}" y1="${getY(maxVal)}" x2="${W - padX}" y2="${getY(maxVal)}" stroke="var(--border-color)" stroke-width="0.5" stroke-dasharray="2 2" opacity="0.5" />
+              
+              <!-- Courbe Capital Bourse (Bleu) -->
+              <path d="${pathCap}" fill="none" stroke="var(--accent-blue)" stroke-width="2.5" stroke-linecap="round" />
+              <!-- Courbe Transmis (Doré) -->
+              <path d="${pathTrans}" fill="none" stroke="var(--accent-yellow-bright)" stroke-width="2.5" stroke-linecap="round" />
+
+              <!-- Points finaux -->
+              <circle cx="${getX(dataPoints.length - 1)}" cy="${getY(currentCapital)}" r="4" fill="var(--accent-blue)" />
+              <circle cx="${getX(dataPoints.length - 1)}" cy="${getY(currentTransferred)}" r="4" fill="var(--accent-yellow-bright)" />
+            </svg>
+          </div>
+        `;
+      }
+
+      // 3. Liste textuelle des mouvements récents
+      let listHTML = '';
+      if (!Array.isArray(b.history) || b.history.length === 0) {
+        listHTML = `<div style="text-align:center; opacity:0.6; font-size:0.8rem; padding:10px;">Aucun mouvement de réserve enregistré.</div>`;
+      } else {
+        b.history.slice().reverse().forEach(h => {
+          const dateStr = new Date(h.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+          
+          if (h.type === 'capital_update') {
+            listHTML += `
+              <div class="history-item">
+                <div>
+                  <strong style="color:var(--accent-blue);">📈 Maj Capital Bourse</strong>
+                  <div style="font-size:0.7rem; opacity:0.6;">${dateStr}</div>
+                </div>
+                <strong style="color:var(--accent-blue); font-size:0.85rem;">${fmt(h.globalCapital)}</strong>
+              </div>
+            `;
+          } else {
+            const isWithdraw = (h.amount > 0);
+            const color = isWithdraw ? 'var(--accent-yellow-bright)' : 'var(--accent-green-bright)';
+            const label = isWithdraw ? 'Déversement' : 'Rechargement';
+            const sign = isWithdraw ? '-' : '+';
+            const valAbs = Math.abs(h.amount);
+
+            listHTML += `
+              <div class="history-item">
+                <div>
+                  <strong style="color:${color};">${label}</strong>
+                  <div style="font-size:0.7rem; opacity:0.6;">${dateStr}</div>
+                </div>
+                <strong style="color:${color}; font-size:0.9rem;">${sign}${fmt(valAbs)}</strong>
+              </div>
+            `;
+          }
+        });
+      }
+
+      content.innerHTML = chartHTML + `<div style="font-size:0.7rem; font-weight:bold; opacity:0.7; margin: 4px 0 2px 2px;">DÉTAIL DES MOUVEMENTS :</div>` + listHTML;
 
       document.getElementById('history-modal').classList.add('active');
       document.body.style.overflow = 'hidden';
@@ -1200,7 +1318,13 @@
         b.reserve = Math.max(0, (b.reserve || 0) - withdrawVal);
 
         if (!Array.isArray(b.history)) b.history = [];
-        b.history.push({ date: new Date().toISOString(), amount: withdrawVal });
+        b.history.push({ 
+          date: new Date().toISOString(), 
+          type: 'withdraw',
+          amount: withdrawVal,
+          cumulTransferred: b.transferred,
+          globalCapital: b.globalCapital || 0
+        });
 
         showCustomDialog('⚡', 'Déversement Validé', `Déversement de <strong>${fmt(withdrawVal)}</strong> vers ${b.name}`);
       } else if (type === 'add') {
@@ -1214,7 +1338,13 @@
         b.reserve = (b.reserve || 0) + addVal;
 
         if (!Array.isArray(b.history)) b.history = [];
-        b.history.push({ date: new Date().toISOString(), amount: -addVal });
+        b.history.push({ 
+          date: new Date().toISOString(), 
+          type: 'add',
+          amount: -addVal,
+          cumulTransferred: b.transferred || 0,
+          globalCapital: b.globalCapital || 0
+        });
 
         showCustomDialog('⚡', 'Rechargement Validé', `Rechargement de <strong>${fmt(addVal)}</strong> sur la réserve de ${b.name}`);
       }
