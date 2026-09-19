@@ -192,7 +192,6 @@
     .help-box { display: none; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 10px; font-size: 0.78rem; line-height: 1.4; color: var(--text-main); margin-top: 4px; }
     .help-box.active { display: block; }
 
-    /* CARTE DU PROCHE */
     .pulse-card {
       background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px;
       padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; border-left: 4px solid var(--accent-yellow);
@@ -205,7 +204,6 @@
     }
     .pulse-card.dragging { opacity: 0.4; border: 2px dashed var(--accent-yellow) !important; }
 
-    /* BARRE DE PROGRESSION DYNAMIQUE */
     .progress-box { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; }
     .progress-labels { display: flex; justify-content: space-between; font-size: 0.7rem; font-weight: bold; }
     .progress-track {
@@ -319,8 +317,18 @@
     .beneficiary-row {
       display: flex; justify-content: space-between; align-items: center; padding: 8px 10px;
       background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer;
+      gap: 12px;
     }
     .beneficiary-row:hover { border-color: var(--accent-yellow); }
+    .beneficiary-info {
+      flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+    }
+    .beneficiary-rule {
+      font-size: 0.72rem; color: var(--accent-yellow); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .beneficiary-amount-box {
+      display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+    }
 
     .link-btn {
       display: flex; align-items: center; justify-content: center; width: 100%; padding: 12px;
@@ -350,7 +358,7 @@
 
     <nav>
       <button class="nav-btn active" id="nav-tab1" onclick="switchTab('tab1', event)">
-        <span class="nav-icon">📊</span>
+        <span class="nav-icon">⚖️</span>
         <span data-i18n="tab_beneficiaries">Réserves & Règles</span>
       </button>
       <button class="nav-btn" id="nav-tab2" onclick="switchTab('tab2', event)">
@@ -370,7 +378,7 @@
       <div class="card" style="padding: 10px 14px;">
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
           <div style="flex: 1;">
-            <input type="text" id="user-name-input" class="inline-firstname-input" placeholder="Alpha Picker" onblur="saveUserName()" onkeydown="if(event.key==='Enter') this.blur()">
+            <input type="text" id="user-name-input" class="inline-firstname-input" placeholder="Alpha Piqueur" onblur="saveUserName()" onkeydown="if(event.key==='Enter') this.blur()">
           </div>
           
           <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
@@ -392,7 +400,7 @@
       <div class="card" id="form-card">
         <div class="card-title">
           <div style="display: inline-flex; align-items: center; gap: 6px;">
-            <span id="form-title" data-i18n="form_add_title">Nouvelle Réserve Dédiée</span>
+            <span id="form-title" data-i18n="form_add_title">Nouvelle Réserve</span>
             <button type="button" class="tooltip-btn" onclick="toggleHelp('help-main-reserve', event)">?</button>
           </div>
           <select id="currency-select" onchange="changeCurrency(this.value)" style="width: auto; padding: 4px 8px; font-size: 0.82rem;">
@@ -450,7 +458,9 @@
                 </div>
               </div>
               <input type="number" id="in-b-reserve" placeholder="5000" step="any">
-              <div id="help-reserve-val" class="help-box" data-i18n="help_reserve_val">Montant de la réserve. Verrouillé en édition : passe par « Enregistrer un Mouvement » dans le Suivi pour la modifier.</div>
+              <div id="help-reserve-val" class="help-box" data-i18n="help_reserve_val_create">
+                Saisis le capital initial alloué à cette réserve.
+              </div>
             </div>
           </div>
 
@@ -484,7 +494,7 @@
                 <button type="button" class="tooltip-btn" onclick="toggleHelp('help-rule-desc', event)">?</button>
               </div>
             </div>
-            <input type="text" id="in-b-rule-desc" placeholder="1€ pour 1€ investi, plafonné à 150€/mois">
+            <input type="text" id="in-b-rule-desc" placeholder="1 € pour 2 € investis">
             <div id="help-rule-desc" class="help-box" data-i18n="help_rule_desc">Conditions de déblocage définies pour cette réserve.</div>
           </div>
 
@@ -498,8 +508,7 @@
       <!-- LISTE DES RÉSERVES -->
       <div class="card">
         <div class="card-title">
-          <span data-i18n="b_list_title">👥 Réseau & Réserves Actives</span>
-          <span id="b-count-badge" style="font-size: 0.72rem; opacity: 0.7;">0 réserve</span>
+          <span data-i18n="b_list_title">👥 Réserves Actives</span>
         </div>
         <div id="beneficiaries-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
       </div>
@@ -607,8 +616,8 @@
   <!-- MODALE CROP IMAGE -->
   <div id="crop-modal" class="modal-overlay">
     <div class="modal-card">
-      <div class="card-title">📸 Ajuster la Photo du Proche</div>
-      <p style="font-size:0.82rem; opacity:0.8;">Glisse l'image pour la centrer et utilise le zoom.</p>
+      <div class="card-title" data-i18n="crop_title">📸 Ajuster la Photo du Proche</div>
+      <p style="font-size:0.82rem; opacity:0.8;" data-i18n="crop_desc">Glisse l'image pour la centrer et utilise le zoom.</p>
       
       <div class="crop-container">
         <canvas id="crop-canvas" width="280" height="280" style="width: 140px; height: 140px;"></canvas>
@@ -616,24 +625,24 @@
           <span style="font-size: 0.8rem;">Zoom:</span>
           <input type="range" id="zoom-slider" min="0.5" max="3" step="0.05" value="1" style="flex:1;">
         </div>
-        <button class="btn-primary" onclick="confirmCrop()" style="width: 100%;">Valider la photo</button>
+        <button class="btn-primary" onclick="confirmCrop()" style="width: 100%;" data-i18n="crop_confirm">Valider la photo</button>
       </div>
 
-      <button class="btn-secondary" onclick="closeCropModal()">Fermer</button>
+      <button class="btn-secondary" onclick="closeCropModal()" data-i18n="crop_close">Fermer</button>
     </div>
   </div>
 
   <!-- MODALE HERO RÉSERVES (TOTAL DISPONIBLE) -->
   <div id="hero-reserves-modal" class="modal-overlay">
     <div class="modal-card">
-      <div class="card-title" id="m-hero-res-title">📊 Réserves Dédiées</div>
-      <p style="font-size: 0.82rem; line-height: 1.4; color: var(--text-main);" id="m-hero-res-desc">
+      <div class="card-title" id="m-hero-res-title" data-i18n="m_hero_res_title">💰 Réserves Dédiées</div>
+      <p style="font-size: 0.82rem; line-height: 1.4; color: var(--text-main);" id="m-hero-res-desc" data-i18n="m_hero_res_desc">
         Ces réserves sont allouées de ton côté. Elles représentent la capacité d'abondement disponible pour tes proches.
       </p>
 
       <div id="m-hero-res-list" style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;"></div>
 
-      <button class="btn-primary" onclick="closeHeroReservesModal()" style="margin-top: 6px;">Compris !</button>
+      <button class="btn-primary" onclick="closeHeroReservesModal()" style="margin-top: 6px;" data-i18n="btn_understood">Compris !</button>
     </div>
   </div>
 
@@ -641,22 +650,22 @@
   <div id="hero-celeb-modal" class="modal-overlay">
     <div class="modal-card" style="text-align: center;">
       <div style="font-size: 2.8rem; line-height: 1;">🏆</div>
-      <div class="card-title" style="justify-content: center; font-size: 1.25rem;" id="m-celeb-title">Félicitations !</div>
+      <div class="card-title" style="justify-content: center; font-size: 1.25rem;" id="m-celeb-title" data-i18n="m_celeb_title">Félicitations !</div>
       <p style="font-size: 0.85rem; line-height: 1.5; color: var(--text-bright); font-weight: bold;" id="m-celeb-msg"></p>
       
       <!-- RÉCAPITULATIF DES TRANSMISSIONS PAR PROCHE -->
       <div style="border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 4px; text-align: left;">
-        <div style="font-size: 0.78rem; font-weight: bold; color: var(--accent-green-bright); margin-bottom: 6px;">Déversements effectifs par proche :</div>
+        <div style="font-size: 0.78rem; font-weight: bold; color: var(--accent-green-bright); margin-bottom: 6px;" data-i18n="m_celeb_sub">Déversements effectifs par proche :</div>
         <div id="m-celeb-per-person-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
       </div>
 
       <!-- BADGES -->
       <div style="border-top: 1px dashed var(--border-color); padding-top: 10px; margin-top: 8px;">
-        <div style="font-size: 0.8rem; font-weight: bold; color: var(--accent-yellow);" id="m-celeb-badge-title">🏅 Badges d'Abondement KLON</div>
+        <div style="font-size: 0.8rem; font-weight: bold; color: var(--accent-yellow);" id="m-celeb-badge-title" data-i18n="m_celeb_badge_title">🏅 Badges d'Abondement KLON</div>
         <div class="badge-grid" id="m-celeb-badge-grid"></div>
       </div>
 
-      <button class="btn-primary" onclick="closeHeroCelebrationModal()" style="margin-top: 8px; width: 100%;">Continuer l'Abondement</button>
+      <button class="btn-primary" onclick="closeHeroCelebrationModal()" style="margin-top: 8px; width: 100%;" data-i18n="m_celeb_continue">Continuer l'Abondement</button>
     </div>
   </div>
 
@@ -664,14 +673,14 @@
   <div id="quick-cap-modal" class="modal-overlay">
     <div class="modal-card">
       <div class="card-title" id="m-cap-title">Capital Bourse</div>
-      <p style="font-size: 0.8rem; opacity: 0.8;">Saisis la valeur actuelle du portefeuille boursier du proche pour mettre à jour sa trajectoire.</p>
+      <p style="font-size: 0.8rem; opacity: 0.8;" data-i18n="m_cap_desc">Saisis la valeur actuelle du portefeuille boursier du proche pour mettre à jour sa trajectoire.</p>
       
       <div id="m-cap-share-info" style="font-size: 0.8rem; color: var(--accent-yellow); font-weight: bold; background: var(--bg-color); padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border-color); text-align: center; display: none;"></div>
 
       <input type="number" id="in-quick-cap-val" placeholder="12000" step="any" style="font-weight: bold; font-size: 1.1rem; text-align: center;">
       <div style="display: flex; gap: 8px; margin-top: 4px;">
-        <button class="btn-primary" onclick="confirmQuickCapUpdate()" style="flex: 1;">Enregistrer</button>
-        <button class="btn-secondary" onclick="closeQuickCapModal()" style="flex: 1;">Annuler</button>
+        <button class="btn-primary" onclick="confirmQuickCapUpdate()" style="flex: 1;" data-i18n="btn_save">Enregistrer</button>
+        <button class="btn-secondary" onclick="closeQuickCapModal()" style="flex: 1;" data-i18n="btn_cancel">Annuler</button>
       </div>
     </div>
   </div>
@@ -680,11 +689,11 @@
   <div id="quick-plafond-modal" class="modal-overlay">
     <div class="modal-card">
       <div class="card-title" id="m-plafond-title">Plafond Mensuel</div>
-      <p style="font-size: 0.8rem; opacity: 0.8;">Ajuste la limite maximale autorisée pour les prélèvements sur le mois en cours.</p>
+      <p style="font-size: 0.8rem; opacity: 0.8;" data-i18n="m_plafond_desc">Ajuste la limite maximale autorisée pour les prélèvements sur le mois en cours.</p>
       <input type="number" id="in-quick-plafond-val" placeholder="150" step="any" style="font-weight: bold; font-size: 1.1rem; text-align: center;">
       <div style="display: flex; gap: 8px; margin-top: 4px;">
-        <button class="btn-primary" onclick="confirmQuickPlafondUpdate()" style="flex: 1;">Enregistrer</button>
-        <button class="btn-secondary" onclick="closeQuickPlafondModal()" style="flex: 1;">Annuler</button>
+        <button class="btn-primary" onclick="confirmQuickPlafondUpdate()" style="flex: 1;" data-i18n="btn_save">Enregistrer</button>
+        <button class="btn-secondary" onclick="closeQuickPlafondModal()" style="flex: 1;" data-i18n="btn_cancel">Annuler</button>
       </div>
     </div>
   </div>
@@ -693,11 +702,11 @@
   <div id="quick-flow-modal" class="modal-overlay">
     <div class="modal-card">
       <div class="card-title" id="m-flow-title">Flux Mensuel</div>
-      <p style="font-size: 0.8rem; opacity: 0.8;">Montant théorique que tu apportes chaque mois pour alimenter cette réserve.</p>
+      <p style="font-size: 0.8rem; opacity: 0.8;" data-i18n="m_flow_desc">Montant théorique que tu apportes chaque mois pour alimenter cette réserve.</p>
       <input type="number" id="in-quick-flow-val" placeholder="100" step="any" style="font-weight: bold; font-size: 1.1rem; text-align: center;">
       <div style="display: flex; gap: 8px; margin-top: 4px;">
-        <button class="btn-primary" onclick="confirmQuickFlowUpdate()" style="flex: 1;">Enregistrer</button>
-        <button class="btn-secondary" onclick="closeQuickFlowModal()" style="flex: 1;">Annuler</button>
+        <button class="btn-primary" onclick="confirmQuickFlowUpdate()" style="flex: 1;" data-i18n="btn_save">Enregistrer</button>
+        <button class="btn-secondary" onclick="closeQuickFlowModal()" style="flex: 1;" data-i18n="btn_cancel">Annuler</button>
       </div>
     </div>
   </div>
@@ -720,7 +729,7 @@
             <input type="number" id="in-pulse-withdraw" value="0" step="any" style="text-align: center; font-weight: bold;">
             <button class="stepper-btn withdraw-btn" onmousedown="startStep('in-pulse-withdraw', 5)" onmouseup="stopStep()" onmouseleave="stopStep()" ontouchstart="startStep('in-pulse-withdraw', 5)" ontouchend="stopStep()">+</button>
           </div>
-          <button class="btn-primary" onclick="confirmSpecificTransfer('withdraw')" style="margin-top: 2px; font-size: 0.85rem; padding: 8px; background: var(--accent-yellow);">
+          <button class="btn-primary" onclick="confirmSpecificTransfer('withdraw')" style="margin-top: 2px; font-size: 0.85rem; padding: 8px; background: var(--accent-yellow);" data-i18n="btn_confirm_withdraw">
             Valider le Déversement
           </button>
         </div>
@@ -736,14 +745,14 @@
             <input type="number" id="in-pulse-add" value="0" step="any" style="text-align: center; font-weight: bold;">
             <button class="stepper-btn add-btn" onmousedown="startStep('in-pulse-add', 5)" onmouseup="stopStep()" onmouseleave="stopStep()" ontouchstart="startStep('in-pulse-add', 5)" ontouchend="stopStep()">+</button>
           </div>
-          <button class="btn-primary" onclick="confirmSpecificTransfer('add')" style="margin-top: 2px; font-size: 0.85rem; padding: 8px; background: var(--accent-green-bright); color: #000;">
+          <button class="btn-primary" onclick="confirmSpecificTransfer('add')" style="margin-top: 2px; font-size: 0.85rem; padding: 8px; background: var(--accent-green-bright); color: #000;" data-i18n="btn_confirm_add">
             Valider le Rechargement
           </button>
         </div>
       </div>
 
       <div style="display: flex; gap: 8px; margin-top: 6px;">
-        <button class="btn-secondary" onclick="closePulseActionModal()" style="flex: 1;">Fermer</button>
+        <button class="btn-secondary" onclick="closePulseActionModal()" style="flex: 1;" data-i18n="btn_close">Fermer</button>
       </div>
     </div>
   </div>
@@ -753,7 +762,7 @@
     <div class="modal-card">
       <div class="card-title" id="m-history-title">📜 Progression & Historique</div>
       <div id="m-history-content" style="display: flex; flex-direction: column; gap: 10px;"></div>
-      <button class="btn-secondary" onclick="closeHistoryModal()" style="margin-top: 4px;">Fermer</button>
+      <button class="btn-secondary" onclick="closeHistoryModal()" style="margin-top: 4px;" data-i18n="btn_close">Fermer</button>
     </div>
   </div>
 
@@ -780,7 +789,8 @@
         theme_dark: "🌙 Sombre",
         theme_light: "☀️ Clair",
         theme_cb: "👁️ Daltonien",
-        form_add_title: "Nouvelle Réserve Dédiée",
+        user_name_placeholder: "Alpha Piqueur",
+        form_add_title: "Nouvelle Réserve",
         lbl_b_name: "Nom",
         lbl_b_global_capital: "Son Capital Bourse",
         lbl_b_reserve: "Réserve",
@@ -788,9 +798,14 @@
         lbl_b_cap_month: "Plafond / mois",
         lbl_b_month_spent: "Prélevé ce mois-ci",
         lbl_b_rule_desc: "Règle de transfert",
+        rule_desc_placeholder: "1 € pour 2 € investis",
         btn_submit: "Valider & Enregistrer",
         btn_cancel: "Annuler",
-        b_list_title: "👥 Réseau & Réserves Actives",
+        btn_save: "Enregistrer",
+        btn_close: "Fermer",
+        btn_delete: "Supprimer",
+        btn_understood: "Compris !",
+        b_list_title: "👥 Réserves Actives",
         data_mgmt_title: "💾 Gestion des Données",
         btn_export: "💾 Exporter",
         btn_import: "📂 Importer",
@@ -802,10 +817,49 @@
         hero_beneficiaries_sub: "{n} proche{s} soutenu{s}",
         lbl_withdraw: "📤 Déversement (vers le proche)",
         lbl_add: "📥 Rechargement (sur la réserve)",
+        btn_confirm_withdraw: "Valider le Déversement",
+        btn_confirm_add: "Valider le Rechargement",
+        btn_record_movement: "Enregistrer un Mouvement",
+        card_transferred_label: "Transmis : {val}",
+        card_cap_reached: "🔴 Plafond atteint",
+        card_no_rule: "Aucune règle spécifique",
+        m_hero_res_title: "💰 Réserves Dédiées",
+        m_hero_res_desc: "Ces réserves sont allouées de ton côté. Elles représentent la capacité d'abondement disponible pour tes proches.",
+        m_celeb_title: "Félicitations !",
+        m_celeb_sub: "Déversements effectifs par proche :",
+        m_celeb_badge_title: "🏅 Badges d'Abondement KLON",
+        m_celeb_continue: "Continuer l'Abondement",
+        m_cap_title_prefix: "Capital Bourse de {name}",
+        m_cap_desc: "Saisis la valeur actuelle du portefeuille boursier du proche pour mettre à jour sa trajectoire.",
+        m_cap_share: "Tes déversements représentent {pct}% de son portefeuille actuel.",
+        m_plafond_title_prefix: "Plafond Mensuel de {name}",
+        m_plafond_desc: "Ajuste la limite maximale autorisée pour les prélèvements sur le mois en cours.",
+        m_flow_title_prefix: "Flux Mensuel pour {name}",
+        m_flow_desc: "Montant théorique que tu apportes chaque mois pour alimenter cette réserve.",
+        m_pulse_title_prefix: "Mouvement sur la Réserve de {name}",
+        m_history_title_prefix: "📜 Historique de {name}",
+        hist_cap_chart: "📈 Évol. Capital Bourse",
+        hist_trans_chart: "⚡ Évol. Total Transmis",
+        hist_chart_min_records: "Au moins 2 relevés nécessaires pour tracer la courbe",
+        hist_chart_latest: "Dernier : {val}",
+        hist_details_title: "Détail des mouvements :",
+        hist_no_movements: "Aucun mouvement enregistré.",
+        hist_cap_update: "📈 Maj Capital Bourse",
+        hist_type_withdraw: "Déversement",
+        hist_type_reload: "Rechargement",
+        crop_title: "📸 Ajuster la Photo du Proche",
+        crop_desc: "Glisse l'image pour la centrer et utilise le zoom.",
+        crop_confirm: "Valider la photo",
+        crop_close: "Fermer",
+        dialog_withdraw_ok: "Déversement Validé",
+        dialog_withdraw_msg: "Déversement de <strong>{val}</strong> vers {name}",
+        dialog_reload_ok: "Rechargement Validé",
+        dialog_reload_msg: "Rechargement de <strong>{val}</strong> sur la réserve de {name}",
         help_main_reserve: "<strong>Principe de la Réserve Dédiée :</strong><br>Une réserve est une poche théorique de ton patrimoine allouée à un proche. Elle évolue avec tes apports et retraits, et se déverse vers son portefeuille selon ta règle d'abondement.",
         help_global_cap: "Valeur totale actuelle du portefeuille boursier du proche.",
         help_monthly_flow: "Montant théorique que tu injectes chaque mois de ton côté pour faire grossir cette réserve.",
-        help_reserve_val: "Montant de la réserve. Verrouillé en édition : passe par « Enregistrer un Mouvement » dans le Suivi pour la modifier.",
+        help_reserve_val_create: "Saisis le capital initial alloué à cette réserve.",
+        help_reserve_val_edit: "Verrouillé. Passe par « Enregistrer un mouvement » dans l'onglet Suivi.",
         help_month_spent: "Calculé automatiquement selon les mouvements enregistrés ce mois-ci.",
         help_cap_month: "Limite maximale autorisée pour le prélèvement mensuel sur la réserve.",
         help_rule_desc: "Conditions de déblocage définies pour cette réserve.",
@@ -833,7 +887,8 @@
         theme_dark: "🌙 Dark",
         theme_light: "☀️ Light",
         theme_cb: "👁️ Colorblind",
-        form_add_title: "New Dedicated Reserve",
+        user_name_placeholder: "Alpha Piqueur",
+        form_add_title: "New Reserve",
         lbl_b_name: "Name",
         lbl_b_global_capital: "Stock Portfolio",
         lbl_b_reserve: "Reserve",
@@ -841,9 +896,14 @@
         lbl_b_cap_month: "Cap / mo",
         lbl_b_month_spent: "Withdrawn this mo",
         lbl_b_rule_desc: "Transfer Rule",
+        rule_desc_placeholder: "$1 for every $2 invested",
         btn_submit: "Save & Validate",
         btn_cancel: "Cancel",
-        b_list_title: "👥 Active Reserves & Network",
+        btn_save: "Save",
+        btn_close: "Close",
+        btn_delete: "Delete",
+        btn_understood: "Got it!",
+        b_list_title: "👥 Active Reserves",
         data_mgmt_title: "💾 Data Management",
         btn_export: "💾 Export",
         btn_import: "📂 Import",
@@ -855,10 +915,49 @@
         hero_beneficiaries_sub: "{n} supported beneficiar{ies}",
         lbl_withdraw: "📤 Withdrawal (to beneficiary)",
         lbl_add: "📥 Reload (to reserve)",
+        btn_confirm_withdraw: "Confirm Transfer",
+        btn_confirm_add: "Confirm Reload",
+        btn_record_movement: "Record a Movement",
+        card_transferred_label: "Transferred: {val}",
+        card_cap_reached: "🔴 Monthly cap reached",
+        card_no_rule: "No specific rule",
+        m_hero_res_title: "💰 Dedicated Reserves",
+        m_hero_res_desc: "These reserves are allocated on your side. They represent the matching capacity available for your loved ones.",
+        m_celeb_title: "Congratulations!",
+        m_celeb_sub: "Effective transfers by beneficiary:",
+        m_celeb_badge_title: "🏅 KLON Matching Badges",
+        m_celeb_continue: "Continue Matching",
+        m_cap_title_prefix: "Stock Portfolio of {name}",
+        m_cap_desc: "Enter the current total value of the beneficiary's brokerage account to update their trajectory.",
+        m_cap_share: "Your transfers represent {pct}% of their current portfolio.",
+        m_plafond_title_prefix: "Monthly Cap of {name}",
+        m_plafond_desc: "Adjust the maximum allowed withdrawal limit for the current month.",
+        m_flow_title_prefix: "Monthly Flow for {name}",
+        m_flow_desc: "Theoretical amount you contribute each month to fund this reserve.",
+        m_pulse_title_prefix: "Reserve Movement for {name}",
+        m_history_title_prefix: "📜 History of {name}",
+        hist_cap_chart: "📈 Stock Portfolio History",
+        hist_trans_chart: "⚡ Total Transferred History",
+        hist_chart_min_records: "At least 2 records required to display chart",
+        hist_chart_latest: "Latest: {val}",
+        hist_details_title: "Movement details:",
+        hist_no_movements: "No movements recorded yet.",
+        hist_cap_update: "📈 Stock Portfolio Update",
+        hist_type_withdraw: "Transfer",
+        hist_type_reload: "Reload",
+        crop_title: "📸 Adjust Photo",
+        crop_desc: "Drag the image to center it and use zoom.",
+        crop_confirm: "Confirm photo",
+        crop_close: "Close",
+        dialog_withdraw_ok: "Transfer Confirmed",
+        dialog_withdraw_msg: "Transfer of <strong>{val}</strong> to {name}",
+        dialog_reload_ok: "Reload Confirmed",
+        dialog_reload_msg: "Reload of <strong>{val}</strong> to {name}'s reserve",
         help_main_reserve: "<strong>Dedicated Reserve Principle :</strong><br>A reserve is a theoretical pocket of your wealth allocated to a loved one. It expands with your contributions and flows into their brokerage according to your rules.",
         help_global_cap: "Current total value of the beneficiary's brokerage account.",
         help_monthly_flow: "Theoretical monthly contribution you inject into this reserve.",
-        help_reserve_val: "Current reserve amount. Locked in edit mode: use « Record a Movement » in Flow tab to update.",
+        help_reserve_val_create: "Enter initial capital allocated to this reserve.",
+        help_reserve_val_edit: "Locked. Use « Record a movement » in KLON Tracker tab.",
         help_month_spent: "Calculated automatically from movements recorded this month.",
         help_cap_month: "Monthly cap limit allowed for withdrawals.",
         help_rule_desc: "Specific unlocking conditions for this reserve.",
@@ -902,16 +1001,25 @@
 
     let localData = JSON.parse(localStorage.getItem('klon_pulse_db'));
     if (!localData || !Array.isArray(localData.beneficiaries)) {
-      localData = { currency: 'EUR', theme: 'dark', lang: 'fr', userName: 'Alpha Picker', beneficiaries: [] };
+      localData = { currency: 'EUR', theme: 'dark', lang: 'fr', userName: '', lastResetMonth: '', beneficiaries: [] };
       localStorage.setItem('klon_pulse_db', JSON.stringify(localData));
     }
     let db = localData;
     if (!db.currency) db.currency = 'EUR';
     if (!db.theme) db.theme = 'dark';
     if (!db.lang) db.lang = 'fr';
-    if (db.userName === undefined) db.userName = 'Alpha Picker';
+    if (db.userName === undefined) db.userName = '';
+    if (!db.lastResetMonth) db.lastResetMonth = new Date().toISOString().slice(0, 7);
 
     function saveData() { localStorage.setItem('klon_pulse_db', JSON.stringify(db)); }
+
+    function checkMonthlyReset() {
+      const currentMonthKey = new Date().toISOString().slice(0, 7);
+      if (db.lastResetMonth !== currentMonthKey) {
+        db.lastResetMonth = currentMonthKey;
+        saveData();
+      }
+    }
 
     function getCurrencySymbol(c) {
       const curr = c || db.currency || 'EUR';
@@ -969,6 +1077,22 @@
         const k = el.getAttribute('data-i18n');
         if (k) el.innerHTML = t(k);
       });
+
+      const nameInput = document.getElementById('user-name-input');
+      if (nameInput) {
+        nameInput.placeholder = t('user_name_placeholder');
+      }
+
+      const ruleInput = document.getElementById('in-b-rule-desc');
+      if (ruleInput) {
+        ruleInput.placeholder = t('rule_desc_placeholder');
+      }
+
+      const helpReserveEl = document.getElementById('help-reserve-val');
+      if (helpReserveEl) {
+        helpReserveEl.innerHTML = currentEditingId ? t('help_reserve_val_edit') : t('help_reserve_val_create');
+      }
+
       renderBeneficiariesList();
       renderTab2();
     }
@@ -1070,7 +1194,6 @@
       document.body.style.overflow = '';
     }
 
-    /* --- CALCUL DES PALIERS --- */
     function getNextMilestone(capital) {
       const milestones = [
         10000, 25000, 50000, 75000, 100000, 150000, 
@@ -1089,13 +1212,12 @@
       return 'var(--accent-yellow-bright)';
     }
 
-    /* --- MODALES HERO --- */
     function openHeroReservesModal() {
       const box = document.getElementById('m-hero-res-list');
       box.innerHTML = '';
 
       if (db.beneficiaries.length === 0) {
-        box.innerHTML = `<div style="text-align:center; opacity:0.6; padding:10px; font-size:0.8rem;">Aucune réserve créée pour l'instant.</div>`;
+        box.innerHTML = `<div style="text-align:center; opacity:0.6; padding:10px; font-size:0.8rem;">${db.lang === 'en' ? 'No reserves created yet.' : 'Aucune réserve créée pour l\'instant.'}</div>`;
       } else {
         db.beneficiaries.forEach(b => {
           box.innerHTML += `
@@ -1136,7 +1258,7 @@
       personList.innerHTML = '';
 
       if (db.beneficiaries.length === 0) {
-        personList.innerHTML = `<div style="font-size:0.75rem; opacity:0.6; text-align:center;">Aucune donnée enregistrée.</div>`;
+        personList.innerHTML = `<div style="font-size:0.75rem; opacity:0.6; text-align:center;">${isEn ? 'No data recorded.' : 'Aucune donnée enregistrée.'}</div>`;
       } else {
         db.beneficiaries.forEach(b => {
           const trans = b.transferred || 0;
@@ -1181,22 +1303,20 @@
       document.body.style.overflow = '';
     }
 
-    /* --- MODALES CLIQUABLES --- */
-    
     function openQuickCapModal(bId, e) {
       if (e) e.stopPropagation();
       activePulseBeneficiaryId = bId;
       const b = db.beneficiaries.find(i => i.id === bId);
       if (!b) return;
       
-      document.getElementById('m-cap-title').innerText = `Capital Bourse de ${b.name}`;
+      document.getElementById('m-cap-title').innerText = t('m_cap_title_prefix', { name: b.name });
       document.getElementById('in-quick-cap-val').value = b.globalCapital || '';
 
       const shareBox = document.getElementById('m-cap-share-info');
       const transferredVal = b.transferred || 0;
       if (b.globalCapital && b.globalCapital > 0) {
         const pct = Math.min(100, Math.round((transferredVal / b.globalCapital) * 100));
-        shareBox.innerText = `Tes déversements représentent ${pct}% de son portefeuille actuel.`;
+        shareBox.innerText = t('m_cap_share', { pct });
         shareBox.style.display = 'block';
       } else {
         shareBox.style.display = 'none';
@@ -1239,7 +1359,7 @@
       const b = db.beneficiaries.find(i => i.id === bId);
       if (!b) return;
 
-      document.getElementById('m-plafond-title').innerText = `Plafond Mensuel de ${b.name}`;
+      document.getElementById('m-plafond-title').innerText = t('m_plafond_title_prefix', { name: b.name });
       document.getElementById('in-quick-plafond-val').value = b.capMonth || '';
       document.getElementById('quick-plafond-modal').classList.add('active');
       document.body.style.overflow = 'hidden';
@@ -1267,7 +1387,7 @@
       const b = db.beneficiaries.find(i => i.id === bId);
       if (!b) return;
 
-      document.getElementById('m-flow-title').innerText = `Flux Mensuel pour ${b.name}`;
+      document.getElementById('m-flow-title').innerText = t('m_flow_title_prefix', { name: b.name });
       document.getElementById('in-quick-flow-val').value = b.myMonthly || '';
       document.getElementById('quick-flow-modal').classList.add('active');
       document.body.style.overflow = 'hidden';
@@ -1289,7 +1409,6 @@
       document.body.style.overflow = '';
     }
 
-    /* --- GESTION DES BENEFICIAIRES --- */
     function submitBeneficiaryForm() {
       const name = document.getElementById('in-b-name').value.trim();
       const reserve = parseFloat(document.getElementById('in-b-reserve').value) || 0;
@@ -1299,7 +1418,7 @@
       const ruleDesc = document.getElementById('in-b-rule-desc').value.trim();
 
       if (!name) { 
-        showCustomDialog('⚠️', 'Attention', 'Veuillez saisir un nom.'); 
+        showCustomDialog('⚠️', db.lang === 'en' ? 'Warning' : 'Attention', db.lang === 'en' ? 'Please enter a name.' : 'Veuillez saisir un nom.'); 
         return; 
       }
 
@@ -1350,27 +1469,31 @@
       document.getElementById('in-b-cap-month').value = '';
       document.getElementById('in-b-month-spent-manual').value = '';
       document.getElementById('in-b-rule-desc').value = '';
+
+      const helpReserveEl = document.getElementById('help-reserve-val');
+      if (helpReserveEl) {
+        helpReserveEl.innerHTML = t('help_reserve_val_create');
+      }
     }
 
     function renderBeneficiariesList() {
       const box = document.getElementById('beneficiaries-list');
       box.innerHTML = '';
-      document.getElementById('b-count-badge').innerText = `${db.beneficiaries.length} réserve(s)`;
 
       if (db.beneficiaries.length === 0) {
-        box.innerHTML = `<div style="font-size:0.82rem; opacity:0.6; text-align:center; padding:12px;">Aucune réserve configurée pour le moment.</div>`;
+        box.innerHTML = `<div style="font-size:0.82rem; opacity:0.6; text-align:center; padding:12px;">${db.lang === 'en' ? 'No reserve configured yet.' : 'Aucune réserve configurée pour le moment.'}</div>`;
         return;
       }
 
       db.beneficiaries.forEach(b => {
         box.innerHTML += `
           <div class="beneficiary-row" onclick="editBeneficiary('${b.id}')">
-            <div>
-              <strong style="color:var(--text-bright);">${b.name}</strong>
-              <div style="font-size:0.72rem; color:var(--accent-yellow);">${b.ruleDesc || 'Aucune règle spécifique'}</div>
+            <div class="beneficiary-info">
+              <strong style="color:var(--text-bright); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${b.name}</strong>
+              <div class="beneficiary-rule">${b.ruleDesc || t('card_no_rule')}</div>
             </div>
-            <div style="display:flex; align-items:center; gap:10px;">
-              <strong style="color:var(--accent-yellow-bright);">${fmt(b.reserve)}</strong>
+            <div class="beneficiary-amount-box">
+              <strong style="color:var(--accent-yellow-bright); font-size:1rem;">${fmt(b.reserve)}</strong>
               <button class="btn-danger" onclick="deleteBeneficiary('${b.id}', event)">✕</button>
             </div>
           </div>
@@ -1387,6 +1510,11 @@
       const reserveInput = document.getElementById('in-b-reserve');
       reserveInput.value = b.reserve;
       reserveInput.setAttribute('readonly', 'readonly');
+
+      const helpReserveEl = document.getElementById('help-reserve-val');
+      if (helpReserveEl) {
+        helpReserveEl.innerHTML = t('help_reserve_val_edit');
+      }
       
       document.getElementById('in-b-global-capital').value = b.globalCapital || '';
       document.getElementById('in-b-my-monthly').value = b.myMonthly || '';
@@ -1410,13 +1538,14 @@
 
     function deleteBeneficiary(id, e) {
       if (e) e.stopPropagation();
-      showCustomDialog('🗑️', 'Supprimer la Réserve', 'Es-tu sûr de vouloir supprimer cette réserve dédiée ?', true, () => {
+      const isEn = db.lang === 'en';
+      showCustomDialog('🗑️', isEn ? 'Delete Reserve' : 'Supprimer la Réserve', isEn ? 'Are you sure you want to delete this dedicated reserve?' : 'Es-tu sûr de vouloir supprimer cette réserve dédiée ?', true, () => {
         db.beneficiaries = db.beneficiaries.filter(b => b.id !== id);
         if (currentEditingId === id) cancelEditing();
         saveData(); 
         renderBeneficiariesList(); 
         renderTab2();
-      });
+      }, 'OK', t('btn_delete'));
     }
 
     function getThisMonthSpent(b) {
@@ -1433,6 +1562,7 @@
       container.innerHTML = '';
 
       let totalAllocated = 0, totalTransferred = 0, totalMonthly = 0;
+      const isEn = db.lang === 'en';
 
       db.beneficiaries.forEach((b, index) => {
         const currentReserve = b.reserve || 0;
@@ -1445,7 +1575,7 @@
         const capMonth = b.capMonth || 0;
         const isCapReached = (capMonth > 0 && thisMonthSpent >= capMonth);
 
-        const capBadge = isCapReached ? `<span style="color:var(--accent-red); font-weight:bold; font-size:0.7rem;">🔴 Plafond atteint</span>` : ``;
+        const capBadge = isCapReached ? `<span style="color:var(--accent-red); font-weight:bold; font-size:0.7rem;">${t('card_cap_reached')}</span>` : ``;
 
         const capDisplay = capMonth > 0 
           ? `<span style="font-weight:bold; color:${isCapReached ? 'var(--accent-red)' : 'var(--text-bright)'};">${fmt(thisMonthSpent)} / ${fmt(capMonth)}</span>`
@@ -1458,12 +1588,13 @@
         const progressPct = Math.min(100, Math.round((capVal / targetMilestone) * 100));
         const milestoneColor = getMilestoneColor(targetMilestone);
 
+        const stockPortfolioLabel = isEn ? 'Stock Portfolio' : 'Capital Bourse';
         const globalCapitalDisplay = capVal > 0 
-          ? `<div class="clickable-zone" onclick="openQuickCapModal('${b.id}', event)" title="Cliquer pour ajuster le Capital Bourse" style="font-size:0.75rem; color:var(--accent-blue); font-weight:bold; margin-top:2px;">
-               Capital Bourse : ${fmt(capVal)}
+          ? `<div class="clickable-zone" onclick="openQuickCapModal('${b.id}', event)" title="${isEn ? 'Click to adjust stock portfolio' : 'Cliquer pour ajuster le Capital Bourse'}" style="font-size:0.75rem; color:var(--accent-blue); font-weight:bold; margin-top:2px;">
+               ${stockPortfolioLabel} : ${fmt(capVal)}
              </div>`
-          : `<div class="clickable-zone" onclick="openQuickCapModal('${b.id}', event)" title="Cliquer pour ajouter le Capital Bourse" style="font-size:0.72rem; opacity:0.6; margin-top:2px;">
-               + Capital Bourse
+          : `<div class="clickable-zone" onclick="openQuickCapModal('${b.id}', event)" title="${isEn ? 'Click to add stock portfolio' : 'Cliquer pour ajouter le Capital Bourse'}" style="font-size:0.72rem; opacity:0.6; margin-top:2px;">
+               + ${stockPortfolioLabel}
              </div>`;
 
         const card = document.createElement('div');
@@ -1473,7 +1604,7 @@
 
         card.innerHTML = `
           <div class="pulse-card-header">
-            <div class="pulse-avatar" onclick="triggerAvatarUpload('${b.id}', event)" title="Ajuster la photo du proche">
+            <div class="pulse-avatar" onclick="triggerAvatarUpload('${b.id}', event)" title="${isEn ? 'Adjust photo' : 'Ajuster la photo du proche'}">
               ${avatarHTML}
             </div>
             <div style="flex:1; display:flex; justify-content:space-between; align-items:flex-start;">
@@ -1481,21 +1612,20 @@
                 <div style="display:flex; align-items:center; gap:6px;">
                   <strong style="font-size:1rem; color:var(--text-bright);">${b.name}</strong>
                   ${capBadge}
-                  <button class="history-scroll-btn" onclick="openHistoryModal('${b.id}')" title="📜 Historique & Graphes">📜</button>
+                  <button class="history-scroll-btn" onclick="openHistoryModal('${b.id}')" title="📜 History & Charts">📜</button>
                 </div>
                 ${globalCapitalDisplay}
               </div>
               <div style="text-align:right;">
-                <div style="font-size:1.15rem; font-weight:900; color:var(--accent-yellow-bright);" title="Réserve disponible">${fmt(currentReserve)}</div>
-                <div style="font-size:0.75rem; color:var(--accent-green-bright); font-weight:bold;" title="Total déversé au proche">Transmis : ${fmt(transferredVal)}</div>
+                <div style="font-size:1.15rem; font-weight:900; color:var(--accent-yellow-bright);" title="${isEn ? 'Available reserve' : 'Réserve disponible'}">${fmt(currentReserve)}</div>
+                <div style="font-size:0.75rem; color:var(--accent-green-bright); font-weight:bold;" title="${isEn ? 'Total transferred' : 'Total déversé au proche'}">${t('card_transferred_label', { val: fmt(transferredVal) })}</div>
               </div>
             </div>
           </div>
 
-          <!-- BARRE DE PROGRESSION PAR PALIER -->
           <div class="progress-box">
             <div class="progress-labels">
-              <span style="color: var(--text-main); opacity: 0.8;">Objectif : ${fmt(targetMilestone)}</span>
+              <span style="color: var(--text-main); opacity: 0.8;">${isEn ? 'Milestone' : 'Objectif'} : ${fmt(targetMilestone)}</span>
               <span style="color: ${milestoneColor};">${progressPct}%</span>
             </div>
             <div class="progress-track">
@@ -1504,13 +1634,13 @@
           </div>
 
           <div style="display:flex; justify-content:space-between; font-size:0.73rem; opacity:0.9; margin-top:2px;">
-            <span class="clickable-zone" onclick="openQuickFlowModal('${b.id}', event)" title="Cliquer pour ajuster le flux">Flux : +${fmt(b.myMonthly||0)}/mois</span>
-            <span class="clickable-zone" onclick="openQuickPlafondModal('${b.id}', event)" title="Cliquer pour ajuster le plafond">Plafond : ${capDisplay}</span>
+            <span class="clickable-zone" onclick="openQuickFlowModal('${b.id}', event)" title="${isEn ? 'Click to adjust flow' : 'Cliquer pour ajuster le flux'}">${isEn ? 'Flow' : 'Flux'} : +${fmt(b.myMonthly||0)}/${isEn ? 'mo' : 'mois'}</span>
+            <span class="clickable-zone" onclick="openQuickPlafondModal('${b.id}', event)" title="${isEn ? 'Click to adjust cap' : 'Cliquer pour ajuster le plafond'}">${isEn ? 'Cap' : 'Plafond'} : ${capDisplay}</span>
           </div>
 
           <div style="display:flex; gap:8px; margin-top:4px;">
             <button class="btn-primary" onclick="openPulseActionModal('${b.id}')" style="width: 100%; padding: 12px; font-size: 1rem;">
-              Enregistrer un Mouvement
+              ${t('btn_record_movement')}
             </button>
           </div>
         `;
@@ -1547,8 +1677,9 @@
 
       const heroAllocatedEl = document.getElementById('lbl-hero-allocated');
       if (heroAllocatedEl) {
-        heroAllocatedEl.innerText = db.userName.trim() 
-          ? t('hero_allocated_total_named', { name: db.userName.trim().toUpperCase() })
+        const nameVal = (db.userName || '').trim();
+        heroAllocatedEl.innerText = nameVal 
+          ? t('hero_allocated_total_named', { name: nameVal.toUpperCase() })
           : t('hero_allocated_total');
       }
 
@@ -1557,7 +1688,7 @@
 
       const s = db.beneficiaries.length > 1 ? 's' : '';
       const ies = db.beneficiaries.length > 1 ? 'ies' : 'y';
-      const bText = db.lang === 'en' 
+      const bText = isEn 
         ? t('hero_beneficiaries_sub', { n: db.beneficiaries.length, ies })
         : t('hero_beneficiaries_sub', { n: db.beneficiaries.length, s });
 
@@ -1569,13 +1700,14 @@
       activePulseBeneficiaryId = bId;
       const b = db.beneficiaries.find(i => i.id === bId);
       if (!b) return;
-      document.getElementById('m-pulse-title').innerText = `Mouvement sur la Réserve de ${b.name}`;
+      document.getElementById('m-pulse-title').innerText = t('m_pulse_title_prefix', { name: b.name });
       
       document.getElementById('in-pulse-withdraw').value = 0;
       document.getElementById('in-pulse-add').value = 0;
 
-      document.getElementById('btn-last-withdraw').innerText = `🔄 Dernier (${fmt(b.lastWithdraw || 0)})`;
-      document.getElementById('btn-last-add').innerText = `🔄 Dernier (${fmt(b.lastAdd || 0)})`;
+      const lastLabel = db.lang === 'en' ? 'Last' : 'Dernier';
+      document.getElementById('btn-last-withdraw').innerText = `🔄 ${lastLabel} (${fmt(b.lastWithdraw || 0)})`;
+      document.getElementById('btn-last-add').innerText = `🔄 ${lastLabel} (${fmt(b.lastAdd || 0)})`;
       
       document.getElementById('pulse-action-modal').classList.add('active');
       document.body.style.overflow = 'hidden';
@@ -1591,7 +1723,6 @@
       }
     }
 
-    /* --- HISTORIQUE & GRAPHES --- */
     function openHistoryModal(bId) {
       activePulseBeneficiaryId = bId;
       renderHistoryModalContent();
@@ -1622,7 +1753,7 @@
           <div class="history-chart-container">
             <div class="history-chart-title" style="color: ${color};">${labelTitle}</div>
             <div style="text-align: center; font-size: 0.75rem; opacity: 0.6; padding: 20px 0;">
-              Au moins 2 relevés nécessaires pour tracer la courbe
+              ${t('hist_chart_min_records')}
             </div>
           </div>
         `;
@@ -1672,7 +1803,7 @@
         <div class="history-chart-container">
           <div class="history-chart-title" style="color: ${color};">
             <span>${labelTitle}</span>
-            <span>Dernier : ${fmt(values[values.length - 1])}</span>
+            <span>${t('hist_chart_latest', { val: fmt(values[values.length - 1]) })}</span>
           </div>
           <svg width="100%" height="100" viewBox="0 0 ${W} ${H}" style="overflow: visible;">
             ${gridLinesHTML}
@@ -1688,7 +1819,7 @@
       const b = db.beneficiaries.find(i => i.id === activePulseBeneficiaryId);
       if (!b) return;
 
-      document.getElementById('m-history-title').innerText = `📜 Historique de ${b.name}`;
+      document.getElementById('m-history-title').innerText = t('m_history_title_prefix', { name: b.name });
       const content = document.getElementById('m-history-content');
       content.innerHTML = '';
 
@@ -1716,34 +1847,35 @@
         transferred: currentTransferred
       });
 
-      const chartCapitalHTML = renderSingleChart(timeSeries, 'capital', 'var(--accent-blue)', '📈 Évol. Capital Bourse', db.currency);
-      const chartTransferredHTML = renderSingleChart(timeSeries, 'transferred', 'var(--accent-yellow-bright)', '⚡ Évol. Total Transmis', db.currency);
+      const chartCapitalHTML = renderSingleChart(timeSeries, 'capital', 'var(--accent-blue)', t('hist_cap_chart'), db.currency);
+      const chartTransferredHTML = renderSingleChart(timeSeries, 'transferred', 'var(--accent-yellow-bright)', t('hist_trans_chart'), db.currency);
 
       let historyListHTML = '';
       if (!Array.isArray(b.history) || b.history.length === 0) {
-        historyListHTML = `<div style="text-align:center; opacity:0.6; font-size:0.8rem; padding:12px;">Aucun mouvement enregistré.</div>`;
+        historyListHTML = `<div style="text-align:center; opacity:0.6; font-size:0.8rem; padding:12px;">${t('hist_no_movements')}</div>`;
       } else {
+        const localeStr = db.lang === 'en' ? 'en-US' : 'fr-FR';
         b.history.slice().reverse().forEach(h => {
-          const dateStr = new Date(h.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+          const dateStr = new Date(h.date).toLocaleDateString(localeStr, { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
           const itemUniqueId = h.id || h.date;
 
           if (h.type === 'capital_update') {
             historyListHTML += `
               <div class="history-item">
                 <div>
-                  <strong style="color:var(--accent-blue);">📈 Maj Capital Bourse</strong>
+                  <strong style="color:var(--accent-blue);">${t('hist_cap_update')}</strong>
                   <div style="font-size:0.7rem; opacity:0.6;">${dateStr}</div>
                 </div>
                 <div style="display:flex; align-items:center; gap:8px;">
                   <strong style="color:var(--accent-blue); font-size:0.85rem;">${fmt(h.globalCapital)}</strong>
-                  <button class="btn-danger" onclick="deleteHistoryItem('${itemUniqueId}')" title="Supprimer">🗑️</button>
+                  <button class="btn-danger" onclick="deleteHistoryItem('${itemUniqueId}')" title="${db.lang === 'en' ? 'Delete' : 'Supprimer'}">🗑️</button>
                 </div>
               </div>
             `;
           } else {
             const isWithdraw = (h.amount > 0);
             const color = isWithdraw ? 'var(--accent-yellow-bright)' : 'var(--accent-green-bright)';
-            const label = isWithdraw ? 'Déversement' : 'Rechargement';
+            const label = isWithdraw ? t('hist_type_withdraw') : t('hist_type_reload');
             const sign = isWithdraw ? '-' : '+';
             const valAbs = Math.abs(h.amount);
 
@@ -1755,7 +1887,7 @@
                 </div>
                 <div style="display:flex; align-items:center; gap:8px;">
                   <strong style="color:${color}; font-size:0.85rem;">${sign}${fmt(valAbs)}</strong>
-                  <button class="btn-danger" onclick="deleteHistoryItem('${itemUniqueId}')" title="Supprimer">🗑️</button>
+                  <button class="btn-danger" onclick="deleteHistoryItem('${itemUniqueId}')" title="${db.lang === 'en' ? 'Delete' : 'Supprimer'}">🗑️</button>
                 </div>
               </div>
             `;
@@ -1766,7 +1898,7 @@
       content.innerHTML = `
         ${chartCapitalHTML}
         ${chartTransferredHTML}
-        <div style="font-size:0.75rem; font-weight:bold; color:var(--text-bright); margin-top:4px;">Détail des mouvements :</div>
+        <div style="font-size:0.75rem; font-weight:bold; color:var(--text-bright); margin-top:4px;">${t('hist_details_title')}</div>
         <div class="history-list">${historyListHTML}</div>
       `;
     }
@@ -1800,11 +1932,12 @@
       if (!b) return;
 
       const now = Date.now().toString();
+      const isEn = db.lang === 'en';
 
       if (type === 'withdraw') {
         const withdrawVal = parseFloat(document.getElementById('in-pulse-withdraw').value) || 0;
         if (withdrawVal <= 0) { 
-          showCustomDialog('⚠️', 'Attention', 'Saisir un montant supérieur à 0.'); 
+          showCustomDialog('⚠️', isEn ? 'Warning' : 'Attention', isEn ? 'Please enter an amount greater than 0.' : 'Saisir un montant supérieur à 0.'); 
           return; 
         }
         
@@ -1822,11 +1955,11 @@
           globalCapital: b.globalCapital || 0
         });
 
-        showCustomDialog('⚡', 'Déversement Validé', `Déversement de <strong>${fmt(withdrawVal)}</strong> vers ${b.name}`);
+        showCustomDialog('⚡', t('dialog_withdraw_ok'), t('dialog_withdraw_msg', { val: fmt(withdrawVal), name: b.name }));
       } else if (type === 'add') {
         const addVal = parseFloat(document.getElementById('in-pulse-add').value) || 0;
         if (addVal <= 0) { 
-          showCustomDialog('⚠️', 'Attention', 'Saisir un montant supérieur à 0.'); 
+          showCustomDialog('⚠️', isEn ? 'Warning' : 'Attention', isEn ? 'Please enter an amount greater than 0.' : 'Saisir un montant supérieur à 0.'); 
           return; 
         }
 
@@ -1843,7 +1976,7 @@
           globalCapital: b.globalCapital || 0
         });
 
-        showCustomDialog('⚡', 'Rechargement Validé', `Rechargement de <strong>${fmt(addVal)}</strong> sur la réserve de ${b.name}`);
+        showCustomDialog('⚡', t('dialog_reload_ok'), t('dialog_reload_msg', { val: fmt(addVal), name: b.name }));
       }
 
       saveData(); 
@@ -1852,8 +1985,7 @@
       renderTab2();
     }
 
-    /* --- DIALOGUE UNIFIÉ --- */
-    function showCustomDialog(icon, title, message, isConfirm = false, onConfirm = null, customBtnLabel = 'OK') {
+    function showCustomDialog(icon, title, message, isConfirm = false, onConfirm = null, customBtnLabel = 'OK', confirmBtnText = null) {
       document.getElementById('dialog-icon').innerText = icon || 'ℹ️';
       document.getElementById('dialog-title').innerText = title || 'Notification';
       document.getElementById('dialog-message').innerHTML = message || '';
@@ -1862,8 +1994,9 @@
       dialogConfirmCallback = onConfirm;
 
       if (isConfirm) {
+        const confirmLabel = confirmBtnText || t('btn_reset');
         btnBox.innerHTML = `
-          <button class="btn-reset" onclick="executeDialogConfirm()" style="flex: 1; padding: 8px;">${t('btn_reset')}</button>
+          <button class="btn-reset" onclick="executeDialogConfirm()" style="flex: 1; padding: 8px;">${confirmLabel}</button>
           <button class="btn-secondary" onclick="closeCustomDialog()" style="flex: 1; padding: 8px;">${t('btn_cancel')}</button>
         `;
       } else {
@@ -1896,9 +2029,9 @@
         document.body.appendChild(a); 
         a.click(); 
         document.body.removeChild(a);
-        showCustomDialog('💾', 'Exportation Réussie', (db.lang === 'en') ? 'Your backup file has been successfully downloaded!' : 'Votre fichier de sauvegarde KLON Pulse a été téléchargé avec succès !');
+        showCustomDialog('💾', db.lang === 'en' ? 'Export Successful' : 'Exportation Réussie', (db.lang === 'en') ? 'Your backup file has been successfully downloaded!' : 'Votre fichier de sauvegarde KLON Pulse a été téléchargé avec succès !');
       } catch(e) {
-        showCustomDialog('⚠️', 'Erreur', 'Impossible d\'exporter les données.');
+        showCustomDialog('⚠️', db.lang === 'en' ? 'Error' : 'Erreur', db.lang === 'en' ? 'Failed to export data.' : 'Impossible d\'exporter les données.');
       }
     }
 
@@ -1911,8 +2044,9 @@
           const imported = JSON.parse(ev.target.result);
           if (imported && Array.isArray(imported.beneficiaries)) {
             db = imported; 
+            checkMonthlyReset();
             saveData(); 
-            document.getElementById('user-name-input').value = db.userName || 'Alpha Picker';
+            document.getElementById('user-name-input').value = db.userName || '';
             document.getElementById('currency-select').value = db.currency || 'EUR';
             document.getElementById('lang-select').value = db.lang || 'fr';
             document.getElementById('theme-select').value = db.theme || 'dark';
@@ -1920,12 +2054,12 @@
             changeCurrency(db.currency);
             renderBeneficiariesList(); 
             renderTab2();
-            showCustomDialog('✅', 'Importation Réussie', (db.lang === 'en') ? 'KLON Pulse database restored successfully!' : 'Vos données KLON Pulse ont été restaurées avec succès !');
+            showCustomDialog('✅', db.lang === 'en' ? 'Import Successful' : 'Importation Réussie', (db.lang === 'en') ? 'KLON Pulse database restored successfully!' : 'Vos données KLON Pulse ont été restaurées avec succès !');
           } else {
-            showCustomDialog('⚠️', 'Fichier Invalide', (db.lang === 'en') ? 'The JSON backup file is invalid.' : 'Le fichier JSON est invalide.');
+            showCustomDialog('⚠️', db.lang === 'en' ? 'Invalid File' : 'Fichier Invalide', (db.lang === 'en') ? 'The JSON backup file is invalid.' : 'Le fichier JSON est invalide.');
           }
         } catch (err) { 
-          showCustomDialog('⚠️', 'Erreur', 'Erreur lors de la lecture du fichier JSON.'); 
+          showCustomDialog('⚠️', db.lang === 'en' ? 'Error' : 'Erreur', db.lang === 'en' ? 'Error reading JSON file.' : 'Erreur lors de la lecture du fichier JSON.'); 
         }
       };
       reader.readAsText(file);
@@ -1935,25 +2069,46 @@
     function confirmResetDialog() {
       showCustomDialog('🗑️', t('btn_reset'), (db.lang === 'en') ? 'Are you sure you want to reset all Pulse reserves to zero?' : 'Es-tu sûr de vouloir réinitialiser toutes les réserves de KLON Pulse à zéro ?', true, () => {
         db.beneficiaries = [];
-        db.userName = 'Alpha Picker';
+        db.userName = '';
         cancelEditing();
         saveData();
-        document.getElementById('user-name-input').value = db.userName;
+        document.getElementById('user-name-input').value = '';
         renderBeneficiariesList();
         renderTab2();
-      });
+      }, 'OK', t('btn_reset'));
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('user-name-input').value = db.userName || 'Alpha Picker';
+      checkMonthlyReset();
+      document.getElementById('user-name-input').value = db.userName || '';
       document.getElementById('currency-select').value = db.currency || 'EUR';
       document.getElementById('lang-select').value = db.lang || 'fr';
       document.getElementById('theme-select').value = db.theme || 'dark';
       document.documentElement.setAttribute('data-theme', db.theme || 'dark');
+
+      const nameInput = document.getElementById('user-name-input');
+      if (nameInput) {
+        nameInput.placeholder = t('user_name_placeholder');
+      }
+
+      const ruleInput = document.getElementById('in-b-rule-desc');
+      if (ruleInput) {
+        ruleInput.placeholder = t('rule_desc_placeholder');
+      }
+
+      const helpReserveEl = document.getElementById('help-reserve-val');
+      if (helpReserveEl) {
+        helpReserveEl.innerHTML = t('help_reserve_val_create');
+      }
+
       renderBeneficiariesList();
-      if (db.userName) {
-        const heroAllocatedEl = document.getElementById('lbl-hero-allocated');
-        if (heroAllocatedEl) heroAllocatedEl.innerText = t('hero_allocated_total_named', { name: db.userName.trim().toUpperCase() });
+      
+      const heroAllocatedEl = document.getElementById('lbl-hero-allocated');
+      if (heroAllocatedEl) {
+        const nameVal = (db.userName || '').trim();
+        heroAllocatedEl.innerText = nameVal 
+          ? t('hero_allocated_total_named', { name: nameVal.toUpperCase() })
+          : t('hero_allocated_total');
       }
     });
   </script>
