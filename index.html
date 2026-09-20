@@ -2144,9 +2144,8 @@
       checkMonthlyReset();
       document.getElementById('user-name-input').value = db.userName || '';
       document.getElementById('currency-select').value = db.currency || 'EUR';
-      document.getElementById('lang-select').value = db.lang || 'fr';
-      document.getElementById('theme-select').value = db.theme || 'dark';
-      document.documentElement.setAttribute('data-theme', db.theme || 'dark');
+      changeLanguage(db.lang || 'fr');
+      changeTheme(db.theme || 'dark');
 
       const nameInput = document.getElementById('user-name-input');
       if (nameInput) {
