@@ -1106,10 +1106,14 @@
     }
 
     function changeTheme(themeName) {
-      db.theme = themeName;
-      saveData();
-      document.documentElement.setAttribute('data-theme', themeName);
-    }
+  db.theme = themeName;
+  saveData();
+  document.documentElement.setAttribute('data-theme', themeName);
+
+  // Synchronise le menu déroulant de thème
+  const themeSelect = document.getElementById('theme-select');
+  if (themeSelect) themeSelect.value = themeName;
+}
 
     function changeCurrency(sym) {
       db.currency = sym; 
@@ -2146,11 +2150,12 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-      checkMonthlyReset();
-      document.getElementById('user-name-input').value = db.userName || '';
-      document.getElementById('currency-select').value = db.currency || 'EUR';
-      changeLanguage(db.lang || 'fr');
-      changeTheme(db.theme || 'dark');
+  checkMonthlyReset();
+  document.getElementById('user-name-input').value = db.userName || '';
+  document.getElementById('currency-select').value = db.currency || 'EUR';
+  changeLanguage(db.lang || 'fr');
+  changeTheme(db.theme || 'dark');
+});
 
       const nameInput = document.getElementById('user-name-input');
       if (nameInput) {
