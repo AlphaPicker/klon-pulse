@@ -343,6 +343,19 @@
     .link-btn-orange { color: #F0883E !important; }
     .link-btn-orange:hover { border-color: #F0883E !important; color: var(--text-bright) !important; }
     .link-btn-paypal { background-color: var(--btn-paypal-bg) !important; color: var(--btn-paypal-text) !important; }
+    
+    .backup-warning-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 18px; height: 18px; background-color: #F0883E; color: #ffffff;
+      border-radius: 50%; font-size: 0.75rem; font-weight: bold; cursor: pointer;
+      margin-left: 6px; animation: pulse-warning 2s infinite;
+    }
+    @keyframes pulse-warning {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.18); }
+      100% { transform: scale(1); }
+    }
+
     .site-footer { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-color); text-align: center; font-size: 0.75rem; color: var(--text-main); opacity: 0.75; display: flex; flex-direction: column; gap: 8px; line-height: 1.4; }
   </style>
 </head>
@@ -521,7 +534,12 @@
 
       <!-- GESTION DES DONNÉES -->
       <div class="card">
-        <div class="card-title" data-i18n="data_mgmt_title">💾 Gestion des Données</div>
+        <div class="card-title">
+          <div style="display: inline-flex; align-items: center;">
+            <span data-i18n="data_mgmt_title">💾 Gestion des Données</span>
+            <span id="backup-warning" class="backup-warning-badge" style="display: none;" onclick="showBackupWarningInfo()" title="Modifications non sauvegardées">!</span>
+          </div>
+        </div>
         <div style="display: flex; gap: 8px; margin-top: 2px; flex-wrap: wrap;">
           <button class="btn-secondary" style="flex: 1; min-width: 90px;" onclick="exportJSON()" data-i18n="btn_export">💾 Exporter</button>
           <label class="btn-secondary" style="flex: 1; min-width: 90px;">
@@ -861,6 +879,8 @@
         dialog_withdraw_msg: "Déversement de <strong>{val}</strong> vers {name}",
         dialog_reload_ok: "Rechargement Validé",
         dialog_reload_msg: "Rechargement de <strong>{val}</strong> sur la réserve de {name}",
+        backup_unsaved_title: "Sauvegarde Recommandée",
+        backup_unsaved_msg: "De nouvelles modifications ont été enregistrées localement dans ton navigateur, mais n'ont pas encore été exportées en fichier JSON de sauvegarde.",
         help_main_reserve: "<strong>Principe de la Réserve Dédiée :</strong><br>Une réserve est une poche théorique de ton patrimoine allouée à un proche. Elle évolue avec tes apports et retraits, et se déverse vers son portefeuille selon ta règle d'abondement.",
         help_global_cap: "Valeur totale actuelle du portefeuille boursier du proche.",
         help_monthly_flow: "Montant théorique que tu injectes chaque mois de ton côté pour faire grossir cette réserve.",
@@ -959,6 +979,8 @@
         dialog_withdraw_msg: "Transfer of <strong>{val}</strong> to {name}",
         dialog_reload_ok: "Reload Confirmed",
         dialog_reload_msg: "Reload of <strong>{val}</strong> to {name}'s reserve",
+        backup_unsaved_title: "Unsaved Changes",
+        backup_unsaved_msg: "New movements or updates have been saved in your browser, but not exported to a JSON file yet.",
         help_main_reserve: "<strong>Dedicated Reserve Principle :</strong><br>A reserve is a theoretical pocket of your wealth allocated to a loved one. It expands with your contributions and flows into their brokerage according to your rules.",
         help_global_cap: "Current total value of the beneficiary's brokerage account.",
         help_monthly_flow: "Theoretical monthly contribution you inject into this reserve.",
@@ -1007,7 +1029,7 @@
 
     let localData = JSON.parse(localStorage.getItem('klon_pulse_db'));
     if (!localData || !Array.isArray(localData.beneficiaries)) {
-      localData = { currency: 'EUR', theme: 'dark', lang: 'fr', userName: '', lastResetMonth: '', beneficiaries: [] };
+      localData = { currency: 'EUR', theme: 'dark', lang: 'fr', userName: '', lastResetMonth: '', hasUnsavedChanges: false, beneficiaries: [] };
       localStorage.setItem('klon_pulse_db', JSON.stringify(localData));
     }
     let db = localData;
@@ -1015,9 +1037,27 @@
     if (!db.theme) db.theme = 'dark';
     if (!db.lang) db.lang = 'fr';
     if (db.userName === undefined) db.userName = '';
+    if (db.hasUnsavedChanges === undefined) db.hasUnsavedChanges = false;
     if (!db.lastResetMonth) db.lastResetMonth = new Date().toISOString().slice(0, 7);
 
     function saveData() { localStorage.setItem('klon_pulse_db', JSON.stringify(db)); }
+
+    function updateBackupWarningUI() {
+      const badge = document.getElementById('backup-warning');
+      if (badge) {
+        badge.style.display = db.hasUnsavedChanges ? 'inline-flex' : 'none';
+      }
+    }
+
+    function markUnsavedChanges() {
+      db.hasUnsavedChanges = true;
+      saveData();
+      updateBackupWarningUI();
+    }
+
+    function showBackupWarningInfo() {
+      showCustomDialog('💾', t('backup_unsaved_title'), t('backup_unsaved_msg'));
+    }
 
     function checkMonthlyReset() {
       const currentMonthKey = new Date().toISOString().slice(0, 7);
@@ -1042,9 +1082,12 @@
     }
 
     function saveUserName() {
-      db.userName = document.getElementById('user-name-input').value.trim();
-      saveData();
-      if (document.getElementById('tab2').classList.contains('active')) renderTab2();
+      const newName = document.getElementById('user-name-input').value.trim();
+      if (db.userName !== newName) {
+        db.userName = newName;
+        markUnsavedChanges();
+        if (document.getElementById('tab2').classList.contains('active')) renderTab2();
+      }
     }
 
     function toggleHelp(id, e) {
@@ -1189,7 +1232,7 @@
       const b = db.beneficiaries.find(i => i.id === avatarTargetBeneficiaryId);
       if (b) {
         b.avatar = dataUrl;
-        saveData();
+        markUnsavedChanges();
         renderTab2();
       }
       closeCropModal();
@@ -1348,7 +1391,7 @@
           cumulTransferred: b.transferred || 0,
           globalCapital: newVal
         });
-        saveData();
+        markUnsavedChanges();
         renderTab2();
       }
       closeQuickCapModal();
@@ -1376,9 +1419,11 @@
       if (!b) return;
 
       const newVal = parseFloat(document.getElementById('in-quick-plafond-val').value) || 0;
-      b.capMonth = newVal;
-      saveData();
-      renderTab2();
+      if (b.capMonth !== newVal) {
+        b.capMonth = newVal;
+        markUnsavedChanges();
+        renderTab2();
+      }
       closeQuickPlafondModal();
     }
 
@@ -1404,9 +1449,11 @@
       if (!b) return;
 
       const newVal = parseFloat(document.getElementById('in-quick-flow-val').value) || 0;
-      b.myMonthly = newVal;
-      saveData();
-      renderTab2();
+      if (b.myMonthly !== newVal) {
+        b.myMonthly = newVal;
+        markUnsavedChanges();
+        renderTab2();
+      }
       closeQuickFlowModal();
     }
 
@@ -1458,7 +1505,7 @@
         db.beneficiaries.push(newB);
       }
 
-      saveData(); 
+      markUnsavedChanges(); 
       resetFormInputs(); 
       renderBeneficiariesList();
       if (document.getElementById('tab2').classList.contains('active')) renderTab2();
@@ -1548,7 +1595,7 @@
       showCustomDialog('🗑️', isEn ? 'Delete Reserve' : 'Supprimer la Réserve', isEn ? 'Are you sure you want to delete this dedicated reserve?' : 'Es-tu sûr de vouloir supprimer cette réserve dédiée ?', true, () => {
         db.beneficiaries = db.beneficiaries.filter(b => b.id !== id);
         if (currentEditingId === id) cancelEditing();
-        saveData(); 
+        markUnsavedChanges(); 
         renderBeneficiariesList(); 
         renderTab2();
       }, 'OK', t('btn_delete'));
@@ -1672,7 +1719,7 @@
           if (draggedItemIndex !== null && draggedItemIndex !== targetIndex) {
             const movedItem = db.beneficiaries.splice(draggedItemIndex, 1)[0];
             db.beneficiaries.splice(targetIndex, 0, movedItem);
-            saveData();
+            markUnsavedChanges();
             renderTab2();
             renderBeneficiariesList();
           }
@@ -1748,7 +1795,7 @@
       });
       b.transferred = runningTransferred;
 
-      saveData();
+      markUnsavedChanges();
       renderHistoryModalContent();
       renderTab2();
     }
@@ -1985,7 +2032,7 @@
         showCustomDialog('⚡', t('dialog_reload_ok'), t('dialog_reload_msg', { val: fmt(addVal), name: b.name }));
       }
 
-      saveData(); 
+      markUnsavedChanges(); 
       closePulseActionModal(); 
       renderBeneficiariesList();
       renderTab2();
@@ -2035,6 +2082,11 @@
         document.body.appendChild(a); 
         a.click(); 
         document.body.removeChild(a);
+
+        db.hasUnsavedChanges = false;
+        saveData();
+        updateBackupWarningUI();
+
         showCustomDialog('💾', db.lang === 'en' ? 'Export Successful' : 'Exportation Réussie', (db.lang === 'en') ? 'Your backup file has been successfully downloaded!' : 'Votre fichier de sauvegarde KLON Pulse a été téléchargé avec succès !');
       } catch(e) {
         showCustomDialog('⚠️', db.lang === 'en' ? 'Error' : 'Erreur', db.lang === 'en' ? 'Failed to export data.' : 'Impossible d\'exporter les données.');
@@ -2050,6 +2102,7 @@
           const imported = JSON.parse(ev.target.result);
           if (imported && Array.isArray(imported.beneficiaries)) {
             db = imported; 
+            db.hasUnsavedChanges = false;
             checkMonthlyReset();
             saveData(); 
             document.getElementById('user-name-input').value = db.userName || '';
@@ -2058,6 +2111,7 @@
             document.getElementById('theme-select').value = db.theme || 'dark';
             document.documentElement.setAttribute('data-theme', db.theme || 'dark');
             changeCurrency(db.currency);
+            updateBackupWarningUI();
             renderBeneficiariesList(); 
             renderTab2();
             showCustomDialog('✅', db.lang === 'en' ? 'Import Successful' : 'Importation Réussie', (db.lang === 'en') ? 'KLON Pulse database restored successfully!' : 'Vos données KLON Pulse ont été restaurées avec succès !');
@@ -2076,8 +2130,10 @@
       showCustomDialog('🗑️', t('btn_reset'), (db.lang === 'en') ? 'Are you sure you want to reset all Pulse reserves to zero?' : 'Es-tu sûr de vouloir réinitialiser toutes les réserves de KLON Pulse à zéro ?', true, () => {
         db.beneficiaries = [];
         db.userName = '';
+        db.hasUnsavedChanges = false;
         cancelEditing();
         saveData();
+        updateBackupWarningUI();
         document.getElementById('user-name-input').value = '';
         renderBeneficiariesList();
         renderTab2();
@@ -2107,6 +2163,7 @@
         helpReserveEl.innerHTML = t('help_reserve_val_create');
       }
 
+      updateBackupWarningUI();
       renderBeneficiariesList();
       
       const heroAllocatedEl = document.getElementById('lbl-hero-allocated');
