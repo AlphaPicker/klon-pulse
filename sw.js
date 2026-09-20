@@ -1,5 +1,5 @@
 // 1. Définissez la nouvelle version du cache
-const CACHE_NAME = 'klon-pulse-v7'; // <-- À incrémenter à chaque mise à jour (v2, v3, etc.)
+const CACHE_NAME = 'klon-pulse-v8'; // <-- À incrémenter à chaque mise à jour (v2, v3, etc.)
 
 const ASSETS = [
   './',
