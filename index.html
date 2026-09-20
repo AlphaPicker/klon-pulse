@@ -902,7 +902,7 @@
         eco_paypal: "Faire un don via PayPal",
         footer_dev: "<strong>KLON Pulse</strong> — Application gratuite & Open Source développée par <strong>Alpha Picker</strong> et hébergée sur GitHub Pages.",
         footer_privacy: "🛡️ <strong>Confidentialité :</strong> Aucun cookie de suivi, aucune collecte de données. Toutes vos saisies restent exclusivement stockées dans votre navigateur.",
-        footer_disclaimer: "⚠️ <strong>Avertissement :</strong> Cet outil sert de simulation personnelle et éducative. Il ne constitue en aucun cas un conseil en investissement ou une incitation financière."
+        footer_disclaimer: "⚠️ <strong>Avertissement :</strong> Cet outil me sert de simulation personnelle et éducative. Il ne constitue en aucun cas un conseil en investissement ou une incitation financière."
       },
       en: {
         subtitle: "Living Heritage Simulator",
@@ -1106,14 +1106,13 @@
     }
 
     function changeTheme(themeName) {
-  db.theme = themeName;
-  saveData();
-  document.documentElement.setAttribute('data-theme', themeName);
+      db.theme = themeName;
+      saveData();
+      document.documentElement.setAttribute('data-theme', themeName);
 
-  // Synchronise le menu déroulant de thème
-  const themeSelect = document.getElementById('theme-select');
-  if (themeSelect) themeSelect.value = themeName;
-}
+      const themeSelect = document.getElementById('theme-select');
+      if (themeSelect) themeSelect.value = themeName;
+    }
 
     function changeCurrency(sym) {
       db.currency = sym; 
@@ -1123,37 +1122,36 @@
     }
 
     function changeLanguage(langCode) {
-  db.lang = langCode;
-  saveData();
-  document.documentElement.setAttribute('lang', langCode);
+      db.lang = langCode;
+      saveData();
+      document.documentElement.setAttribute('lang', langCode);
 
-  // Synchronise le menu déroulant avec la langue active
-  const langSelect = document.getElementById('lang-select');
-  if (langSelect) langSelect.value = langCode;
+      const langSelect = document.getElementById('lang-select');
+      if (langSelect) langSelect.value = langCode;
 
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const k = el.getAttribute('data-i18n');
-    if (k) el.innerHTML = t(k);
-  });
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const k = el.getAttribute('data-i18n');
+        if (k) el.innerHTML = t(k);
+      });
 
-  const nameInput = document.getElementById('user-name-input');
-  if (nameInput) {
-    nameInput.placeholder = t('user_name_placeholder');
-  }
+      const nameInput = document.getElementById('user-name-input');
+      if (nameInput) {
+        nameInput.placeholder = t('user_name_placeholder');
+      }
 
-  const ruleInput = document.getElementById('in-b-rule-desc');
-  if (ruleInput) {
-    ruleInput.placeholder = t('rule_desc_placeholder');
-  }
+      const ruleInput = document.getElementById('in-b-rule-desc');
+      if (ruleInput) {
+        ruleInput.placeholder = t('rule_desc_placeholder');
+      }
 
-  const helpReserveEl = document.getElementById('help-reserve-val');
-  if (helpReserveEl) {
-    helpReserveEl.innerHTML = currentEditingId ? t('help_reserve_val_edit') : t('help_reserve_val_create');
-  }
+      const helpReserveEl = document.getElementById('help-reserve-val');
+      if (helpReserveEl) {
+        helpReserveEl.innerHTML = currentEditingId ? t('help_reserve_val_edit') : t('help_reserve_val_create');
+      }
 
-  renderBeneficiariesList();
-  renderTab2();
-}
+      renderBeneficiariesList();
+      renderTab2();
+    }
 
     function copyFortuneoCode() {
       const code = "12874482";
@@ -2116,13 +2114,9 @@
             saveData(); 
             document.getElementById('user-name-input').value = db.userName || '';
             document.getElementById('currency-select').value = db.currency || 'EUR';
-            document.getElementById('lang-select').value = db.lang || 'fr';
-            document.getElementById('theme-select').value = db.theme || 'dark';
-            document.documentElement.setAttribute('data-theme', db.theme || 'dark');
-            changeCurrency(db.currency);
+            changeLanguage(db.lang || 'fr');
+            changeTheme(db.theme || 'dark');
             updateBackupWarningUI();
-            renderBeneficiariesList(); 
-            renderTab2();
             showCustomDialog('✅', db.lang === 'en' ? 'Import Successful' : 'Importation Réussie', (db.lang === 'en') ? 'KLON Pulse database restored successfully!' : 'Vos données KLON Pulse ont été restaurées avec succès !');
           } else {
             showCustomDialog('⚠️', db.lang === 'en' ? 'Invalid File' : 'Fichier Invalide', (db.lang === 'en') ? 'The JSON backup file is invalid.' : 'Le fichier JSON est invalide.');
@@ -2150,12 +2144,12 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-  checkMonthlyReset();
-  document.getElementById('user-name-input').value = db.userName || '';
-  document.getElementById('currency-select').value = db.currency || 'EUR';
-  changeLanguage(db.lang || 'fr');
-  changeTheme(db.theme || 'dark');
-});
+      checkMonthlyReset();
+      document.getElementById('user-name-input').value = db.userName || '';
+      document.getElementById('currency-select').value = db.currency || 'EUR';
+      
+      changeLanguage(db.lang || 'fr');
+      changeTheme(db.theme || 'dark');
 
       const nameInput = document.getElementById('user-name-input');
       if (nameInput) {
