@@ -1119,32 +1119,37 @@
     }
 
     function changeLanguage(langCode) {
-      db.lang = langCode;
-      saveData();
-      document.documentElement.setAttribute('lang', langCode);
-      document.querySelectorAll('[data-i18n]').forEach(el => {
-        const k = el.getAttribute('data-i18n');
-        if (k) el.innerHTML = t(k);
-      });
+  db.lang = langCode;
+  saveData();
+  document.documentElement.setAttribute('lang', langCode);
 
-      const nameInput = document.getElementById('user-name-input');
-      if (nameInput) {
-        nameInput.placeholder = t('user_name_placeholder');
-      }
+  // Synchronise le menu déroulant avec la langue active
+  const langSelect = document.getElementById('lang-select');
+  if (langSelect) langSelect.value = langCode;
 
-      const ruleInput = document.getElementById('in-b-rule-desc');
-      if (ruleInput) {
-        ruleInput.placeholder = t('rule_desc_placeholder');
-      }
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.getAttribute('data-i18n');
+    if (k) el.innerHTML = t(k);
+  });
 
-      const helpReserveEl = document.getElementById('help-reserve-val');
-      if (helpReserveEl) {
-        helpReserveEl.innerHTML = currentEditingId ? t('help_reserve_val_edit') : t('help_reserve_val_create');
-      }
+  const nameInput = document.getElementById('user-name-input');
+  if (nameInput) {
+    nameInput.placeholder = t('user_name_placeholder');
+  }
 
-      renderBeneficiariesList();
-      renderTab2();
-    }
+  const ruleInput = document.getElementById('in-b-rule-desc');
+  if (ruleInput) {
+    ruleInput.placeholder = t('rule_desc_placeholder');
+  }
+
+  const helpReserveEl = document.getElementById('help-reserve-val');
+  if (helpReserveEl) {
+    helpReserveEl.innerHTML = currentEditingId ? t('help_reserve_val_edit') : t('help_reserve_val_create');
+  }
+
+  renderBeneficiariesList();
+  renderTab2();
+}
 
     function copyFortuneoCode() {
       const code = "12874482";
