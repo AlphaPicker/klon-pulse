@@ -1295,40 +1295,47 @@
     }
 
     function populateRulesDropdown(selectedRuleId = '') {
-      const select = document.getElementById('select-b-rule');
-      if (!select) return;
-      select.innerHTML = '';
+  const select = document.getElementById('select-b-rule');
+  if (!select) return;
+  select.innerHTML = '';
 
-      if (!selectedRuleId && db.rules.length > 0) {
-        selectedRuleId = db.rules[0].id;
-      }
+  // 1. Option neutre par défaut pour éviter le blocage du "onchange"
+  const defaultOpt = document.createElement('option');
+  defaultOpt.value = '';
+  defaultOpt.innerText = db.lang === 'en' ? '-- Select or create a rule --' : '-- Choisir ou créer une règle --';
+  defaultOpt.disabled = false;
+  select.appendChild(defaultOpt);
 
-      // 1. Liste des règles
-      db.rules.forEach(r => {
-        const opt = document.createElement('option');
-        opt.value = r.id;
-        opt.innerText = getRuleDisplayTitle(r);
-        if (r.id === selectedRuleId) opt.selected = true;
-        select.appendChild(opt);
-      });
+  // 2. Liste des règles existantes
+  db.rules.forEach(r => {
+    const opt = document.createElement('option');
+    opt.value = r.id;
+    opt.innerText = getRuleDisplayTitle(r);
+    if (r.id === selectedRuleId) opt.selected = true;
+    select.appendChild(opt);
+  });
 
-      // 2. Entrée permanente de création
-      const createOpt = document.createElement('option');
-      createOpt.value = '__new__';
-      createOpt.innerText = t('opt_create_new_rule');
-      if (selectedRuleId === '__new__' || db.rules.length === 0) createOpt.selected = true;
-      select.appendChild(createOpt);
+  // 3. Entrée permanente de création
+  const createOpt = document.createElement('option');
+  createOpt.value = '__new__';
+  createOpt.innerText = t('opt_create_new_rule');
+  if (selectedRuleId === '__new__') createOpt.selected = true;
+  select.appendChild(createOpt);
 
-      if (select.value !== '__new__') {
-        previousSelectedRuleId = select.value;
-      }
+  // Sélectionne l'option par défaut si aucune règle n'est choisie
+  if (!selectedRuleId) {
+    select.value = '';
+  }
 
-      const btnEdit = document.getElementById('btn-edit-selected-rule');
-      if (btnEdit) {
-        btnEdit.style.display = (db.rules.length > 0 && select.value !== '__new__') ? 'inline-flex' : 'none';
-      }
-    }
+  if (select.value !== '__new__' && select.value !== '') {
+    previousSelectedRuleId = select.value;
+  }
 
+  const btnEdit = document.getElementById('btn-edit-selected-rule');
+  if (btnEdit) {
+    btnEdit.style.display = (db.rules.length > 0 && select.value !== '__new__' && select.value !== '') ? 'inline-flex' : 'none';
+  }
+}
     function handleRuleDropdownChange(val) {
       if (val === '__new__') {
         openCreateRuleModal();
@@ -1470,15 +1477,15 @@
     }
 
     function closeRuleModal() {
-      document.getElementById('rule-modal').classList.remove('active');
-      document.body.style.overflow = '';
-      currentEditingRuleId = null;
+  document.getElementById('rule-modal').classList.remove('active');
+  document.body.style.overflow = '';
+  currentEditingRuleId = null;
 
-      const sel = document.getElementById('select-b-rule');
-      if (sel && sel.value === '__new__') {
-        sel.value = previousSelectedRuleId || (db.rules.length > 0 ? db.rules[0].id : '');
-      }
-    }
+  const sel = document.getElementById('select-b-rule');
+  if (sel && sel.value === '__new__') {
+    sel.value = previousSelectedRuleId || '';
+  }
+}
 
     /* --- CROP ENGINE --- */
     function triggerAvatarUpload(bId, e) {
