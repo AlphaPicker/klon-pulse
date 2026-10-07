@@ -175,9 +175,9 @@
       font-size: 0.72rem; font-weight: bold; color: var(--text-main); display: inline-flex; align-items: center; gap: 4px;
     }
 
-    input[type="text"], input[type="number"], select {
+    input[type="text"], input[type="number"], select, textarea {
       background-color: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-bright);
-      padding: 10px 12px; border-radius: 6px; font-size: 0.95rem; width: 100%;
+      padding: 10px 12px; border-radius: 6px; font-size: 0.95rem; width: 100%; font-family: inherit;
     }
     input[readonly] { opacity: 0.6; cursor: not-allowed; background-color: rgba(0,0,0,0.2); }
     select { cursor: pointer; font-weight: bold; color: var(--accent-yellow) !important; }
@@ -195,14 +195,16 @@
     .pulse-card {
       background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px;
       padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; border-left: 4px solid var(--accent-yellow);
-      transition: border-color 0.2s, transform 0.15s; position: relative; cursor: grab; user-select: none;
+      transition: border-color 0.2s, transform 0.15s, opacity 0.15s; position: relative; cursor: grab; user-select: none;
+      touch-action: manipulation;
     }
     .pulse-card:active { cursor: grabbing; }
     .pulse-card.cap-reached {
       border-left-color: var(--accent-red) !important;
       background: linear-gradient(135deg, var(--card-bg) 0%, rgba(218, 54, 51, 0.05) 100%);
     }
-    .pulse-card.dragging { opacity: 0.4; border: 2px dashed var(--accent-yellow) !important; }
+    .pulse-card.dragging { opacity: 0.4; border: 2px dashed var(--accent-yellow) !important; transform: scale(0.98); }
+    .pulse-card.long-pressing { transform: scale(0.98); opacity: 0.7; }
 
     .progress-box { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; }
     .progress-labels { display: flex; justify-content: space-between; font-size: 0.7rem; font-weight: bold; }
@@ -219,6 +221,13 @@
     .clickable-zone:hover {
       background: rgba(245, 166, 11, 0.12);
       transform: translateY(-1px);
+    }
+
+    /* RÈGLE ÉPURÉE */
+    .beneficiary-rule-text {
+      font-size: 0.73rem; font-weight: bold; color: var(--accent-yellow);
+      display: inline-flex; align-items: center; gap: 4px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;
     }
 
     .pulse-card-header { display: flex; align-items: center; gap: 10px; }
@@ -307,7 +316,8 @@
       display: inline-flex; align-items: center; justify-content: center; gap: 4px; box-sizing: border-box; text-align: center;
     }
     button.btn-secondary:hover, label.btn-secondary:hover { border-color: var(--accent-yellow); color: var(--text-bright); }
-    button.btn-danger { background-color: transparent; color: var(--accent-red); border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    button.btn-danger { background-color: transparent; color: var(--accent-red); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    button.btn-danger:hover { background-color: rgba(218, 54, 51, 0.15); }
     button.btn-reset {
       background-color: transparent; color: var(--accent-red); border: 1px solid var(--accent-red);
       padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem;
@@ -322,9 +332,6 @@
     .beneficiary-row:hover { border-color: var(--accent-yellow); }
     .beneficiary-info {
       flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
-    }
-    .beneficiary-rule {
-      font-size: 0.72rem; color: var(--accent-yellow); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .beneficiary-amount-box {
       display: flex; align-items: center; gap: 10px; flex-shrink: 0;
@@ -506,6 +513,7 @@
             </div>
           </div>
 
+          <!-- GESTION DE LA RÈGLE : SÉLECTEUR + CRAYON UNIQUE -->
           <div>
             <div class="field-header">
               <div class="field-label-text">
@@ -513,8 +521,17 @@
                 <button type="button" class="tooltip-btn" onclick="toggleHelp('help-rule-desc', event)">?</button>
               </div>
             </div>
-            <input type="text" id="in-b-rule-desc" placeholder="1 € pour 2 € investis">
-            <div id="help-rule-desc" class="help-box" data-i18n="help_rule_desc">Conditions de déblocage définies pour cette réserve.</div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <select id="select-b-rule" onchange="handleRuleDropdownChange(this.value)" style="flex: 1;">
+                <!-- Rempli avec les règles + l'option "➕ Créer une nouvelle règle..." -->
+              </select>
+              <button type="button" class="btn-secondary" id="btn-edit-selected-rule" onclick="editSelectedRule()" style="padding: 10px 14px; font-size: 0.95rem; display: none;" title="Modifier les conditions de cette règle">
+                ✏️
+              </button>
+            </div>
+            <div id="help-rule-desc" class="help-box" data-i18n="help_rule_desc">
+              Choisis une règle pour cette réserve. Utilise le crayon ✏️ pour la modifier ou l'option « ➕ Créer » pour en ajouter une nouvelle.
+            </div>
           </div>
 
           <div style="display: flex; gap: 8px; margin-top: 4px;">
@@ -656,7 +673,39 @@
     </div>
   </div>
 
-  <!-- MODALE HERO RÉSERVES (TOTAL DISPONIBLE) -->
+  <!-- MODALE RÈGLE : ZONE FIXE SANS POIGNÉE ET CORBEILLE SÉCURISÉE -->
+  <div id="rule-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="card-title" id="m-rule-title-header">🏷️ Règle de Transfert</div>
+      <p style="font-size: 0.8rem; opacity: 0.8;" id="m-rule-desc-subtitle" data-i18n="m_rule_subtitle">
+        Définis le nom court affiché sur les cartes et le détail des conditions.
+      </p>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 4px;">
+        <div>
+          <div class="field-header">
+            <span class="field-label-text" data-i18n="lbl_rule_name">Nom court (Titre)</span>
+          </div>
+          <input type="text" id="in-rule-title" placeholder="Abondement 1 pour 2">
+        </div>
+
+        <div>
+          <div class="field-header">
+            <span class="field-label-text" data-i18n="lbl_rule_details">Description détaillée</span>
+          </div>
+          <textarea id="in-rule-desc" rows="3" style="width: 100%; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-bright); padding: 10px; font-family: inherit; font-size: 0.9rem; resize: none; height: 85px; overflow-y: auto;" placeholder="1 € versé pour chaque 2 € investis sur son compte, plafonné à 150 € / mois."></textarea>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-top: 6px;">
+          <button class="btn-primary" id="btn-save-rule" onclick="saveRuleFromModal()" style="flex: 1;" data-i18n="btn_save_rule">Enregistrer la Règle</button>
+          <button type="button" class="btn-danger" id="btn-delete-rule" onclick="deleteRuleWithConfirmation()" style="display: none; padding: 10px 14px;" title="Supprimer la règle">🗑️</button>
+          <button class="btn-secondary" onclick="closeRuleModal()" data-i18n="btn_close">Fermer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE HERO RÉSERVES (TOTAL DISPONIBLE) AVEC LIGNE TOTAL EN BAS -->
   <div id="hero-reserves-modal" class="modal-overlay">
     <div class="modal-card">
       <div class="card-title" id="m-hero-res-title" data-i18n="m_hero_res_title">💰 Réserves Dédiées</div>
@@ -666,24 +715,30 @@
 
       <div id="m-hero-res-list" style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;"></div>
 
+      <div id="m-hero-res-total-row" style="border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem;">
+        <strong style="color: var(--text-bright);" data-i18n="lbl_total_reserves_bottom">Total des réserves :</strong>
+        <strong id="m-hero-res-total-val" style="color: var(--accent-yellow-bright); font-size: 1.1rem;">0 €</strong>
+      </div>
+
       <button class="btn-primary" onclick="closeHeroReservesModal()" style="margin-top: 6px;" data-i18n="btn_understood">Compris !</button>
     </div>
   </div>
 
-  <!-- MODALE HERO CÉLÉBRATION & RECAP PAR PROCHE (TOTAL TRANSMIS) -->
+  <!-- MODALE HERO CÉLÉBRATION & RECAP PAR PROCHE (AVEC TOTAL DANS LE SOUS-TITRE) -->
   <div id="hero-celeb-modal" class="modal-overlay">
     <div class="modal-card" style="text-align: center;">
       <div style="font-size: 2.8rem; line-height: 1;">🏆</div>
       <div class="card-title" style="justify-content: center; font-size: 1.25rem;" id="m-celeb-title" data-i18n="m_celeb_title">Félicitations !</div>
       <p style="font-size: 0.85rem; line-height: 1.5; color: var(--text-bright); font-weight: bold;" id="m-celeb-msg"></p>
       
-      <!-- RÉCAPITULATIF DES TRANSMISSIONS PAR PROCHE -->
       <div style="border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 4px; text-align: left;">
-        <div style="font-size: 0.78rem; font-weight: bold; color: var(--accent-green-bright); margin-bottom: 6px;" data-i18n="m_celeb_sub">Déversements effectifs par proche :</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span style="font-size: 0.8rem; font-weight: bold; color: var(--accent-green-bright);" data-i18n="m_celeb_sub">Déversements effectifs :</span>
+          <strong id="m-celeb-sub-total-val" style="color: var(--accent-green-bright); font-size: 0.95rem;">0 €</strong>
+        </div>
         <div id="m-celeb-per-person-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
       </div>
 
-      <!-- BADGES -->
       <div style="border-top: 1px dashed var(--border-color); padding-top: 10px; margin-top: 8px;">
         <div style="font-size: 0.8rem; font-weight: bold; color: var(--accent-yellow);" id="m-celeb-badge-title" data-i18n="m_celeb_badge_title">🏅 Badges d'Abondement KLON</div>
         <div class="badge-grid" id="m-celeb-badge-grid"></div>
@@ -693,13 +748,13 @@
     </div>
   </div>
 
-  <!-- MODALE QUICK UPDATE CAPITAL BOURSE -->
+  <!-- MODALE QUICK UPDATE CAPITAL BOURSE : LIGNE VERTE ÉPURÉE SANS BOÎTE -->
   <div id="quick-cap-modal" class="modal-overlay">
     <div class="modal-card">
       <div class="card-title" id="m-cap-title">Capital Bourse</div>
       <p style="font-size: 0.8rem; opacity: 0.8;" data-i18n="m_cap_desc">Saisis la valeur actuelle du portefeuille boursier du proche pour mettre à jour sa trajectoire.</p>
       
-      <div id="m-cap-share-info" style="font-size: 0.8rem; color: var(--accent-yellow); font-weight: bold; background: var(--bg-color); padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border-color); text-align: center; display: none;"></div>
+      <div id="m-cap-share-info" style="font-size: 0.82rem; color: var(--accent-green-bright); font-weight: bold; text-align: center; margin: 4px 0 8px 0; display: none;"></div>
 
       <input type="number" id="in-quick-cap-val" placeholder="12000" step="any" style="font-weight: bold; font-size: 1.1rem; text-align: center;">
       <div style="display: flex; gap: 8px; margin-top: 4px;">
@@ -735,41 +790,41 @@
     </div>
   </div>
 
-  <!-- MODALE DE MOUVEMENT (DÉVERSEMENT / RECHARGEMENT) -->
+  <!-- MODALE DE MOUVEMENT (DÉVERSEMENT VERT & RECHARGEMENT JAUNE) -->
   <div id="pulse-action-modal" class="modal-overlay">
     <div class="modal-card">
       <div class="card-title" id="m-pulse-title">Mouvement sur la Réserve</div>
       
       <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 4px;">
         
-        <!-- Déversement -->
+        <!-- Déversement (Vert) -->
         <div style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 6px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <label style="font-size: 0.75rem; font-weight: bold; color: var(--accent-yellow-bright);" data-i18n="lbl_withdraw">📤 Déversement (vers le proche)</label>
+            <label style="font-size: 0.75rem; font-weight: bold; color: var(--accent-green-bright);" data-i18n="lbl_withdraw">📤 Déversement (vers le proche)</label>
             <button id="btn-last-withdraw" class="quick-last-btn" onclick="applyLastVal('withdraw')">🔄 Dernier (0€)</button>
           </div>
           <div class="stepper-row">
-            <button class="stepper-btn withdraw-btn" onmousedown="startStep('in-pulse-withdraw', -5)" onmouseup="stopStep()" onmouseleave="stopStep()" ontouchstart="startStep('in-pulse-withdraw', -5)" ontouchend="stopStep()">-</button>
-            <input type="number" id="in-pulse-withdraw" value="0" step="any" style="text-align: center; font-weight: bold;">
-            <button class="stepper-btn withdraw-btn" onmousedown="startStep('in-pulse-withdraw', 5)" onmouseup="stopStep()" onmouseleave="stopStep()" ontouchstart="startStep('in-pulse-withdraw', 5)" ontouchend="stopStep()">+</button>
+            <button type="button" class="stepper-btn add-btn" onmousedown="startStep('in-pulse-withdraw', -5)" onmouseup="stopStep()" onmouseleave="stopStep()" ontouchstart="event.preventDefault(); startStep('in-pulse-withdraw', -5)" ontouchend="stopStep()">-</button>
+            <input type="number" id="in-pulse-withdraw" value="0" step="any" style="text-align: center; font-weight: bold; color: var(--accent-green-bright);">
+            <button type="button" class="stepper-btn add-btn" onmousedown="startStep('in-pulse-withdraw', 5)" onmouseup="stopStep()" onmouseleave="stopStep()" ontouchstart="event.preventDefault(); startStep('in-pulse-withdraw', 5)" ontouchend="stopStep()">+</button>
           </div>
           <button class="btn-primary" onclick="confirmSpecificTransfer('withdraw')" style="margin-top: 2px; font-size: 0.85rem; padding: 8px;" data-i18n="btn_confirm_withdraw">
             Valider le Déversement
           </button>
         </div>
 
-        <!-- Rechargement -->
+        <!-- Rechargement (Jaune) -->
         <div style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 6px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <label style="font-size: 0.75rem; font-weight: bold; color: var(--accent-green-bright);" data-i18n="lbl_add">📥 Rechargement (sur la réserve)</label>
+            <label style="font-size: 0.75rem; font-weight: bold; color: var(--accent-yellow-bright);" data-i18n="lbl_add">📥 Rechargement (sur la réserve)</label>
             <button id="btn-last-add" class="quick-last-btn" onclick="applyLastVal('add')">🔄 Dernier (0€)</button>
           </div>
           <div class="stepper-row">
-            <button class="stepper-btn add-btn" onmousedown="startStep('in-pulse-add', -5)" onmouseup="stopStep()" onmouseleave="stopStep()" ontouchstart="startStep('in-pulse-add', -5)" ontouchend="stopStep()">-</button>
-            <input type="number" id="in-pulse-add" value="0" step="any" style="text-align: center; font-weight: bold;">
-            <button class="stepper-btn add-btn" onmousedown="startStep('in-pulse-add', 5)" onmouseup="stopStep()" onmouseleave="stopStep()" ontouchstart="startStep('in-pulse-add', 5)" ontouchend="stopStep()">+</button>
+            <button type="button" class="stepper-btn withdraw-btn" onmousedown="startStep('in-pulse-add', -5)" onmouseup="stopStep()" onmouseleave="stopStep()" ontouchstart="event.preventDefault(); startStep('in-pulse-add', -5)" ontouchend="stopStep()">-</button>
+            <input type="number" id="in-pulse-add" value="0" step="any" style="text-align: center; font-weight: bold; color: var(--accent-yellow-bright);">
+            <button type="button" class="stepper-btn withdraw-btn" onmousedown="startStep('in-pulse-add', 5)" onmouseup="stopStep()" onmouseleave="stopStep()" ontouchstart="event.preventDefault(); startStep('in-pulse-add', 5)" ontouchend="stopStep()">+</button>
           </div>
-          <button class="btn-primary" onclick="confirmSpecificTransfer('add')" style="margin-top: 2px; font-size: 0.85rem; padding: 8px;" data-i18n="btn_confirm_add">
+          <button style="background-color: var(--accent-yellow); color: #000000; border: none; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem; margin-top: 2px;" onclick="confirmSpecificTransfer('add')" data-i18n="btn_confirm_add">
             Valider le Rechargement
           </button>
         </div>
@@ -790,12 +845,18 @@
     </div>
   </div>
 
-  <!-- MODALE DIALOGUE -->
-  <div id="custom-dialog-modal" class="modal-overlay" style="z-index: 200;" onclick="if(event.target === this) closeCustomDialog();">
+  <!-- MODALE DIALOGUE UNIFIÉE (COMME DANS KLON DE BASE AVEC CHAMP DE SAISIE POUR RENOMMER) -->
+  <div id="custom-dialog-modal" class="modal-overlay" style="z-index: 200;">
     <div class="modal-card" style="max-width: 360px; text-align: center;">
       <div style="font-size: 2.6rem; line-height: 1;" id="dialog-icon">ℹ️</div>
       <div class="card-title" style="justify-content: center; font-size: 1.15rem; margin: 4px 0;" id="dialog-title">Notification</div>
-      <p style="font-size: 0.85rem; line-height: 1.5; color: var(--text-main); margin-bottom: 6px;" id="dialog-message">Message</p>
+      <div style="font-size: 0.85rem; line-height: 1.5; color: var(--text-main); margin-bottom: 6px;" id="dialog-message">Message</div>
+
+      <!-- Champ de saisie pour renommer directement en 1 clic -->
+      <div id="dialog-input-container" style="display: none; width: 100%; margin: 8px 0;">
+        <input type="text" id="dialog-text-input" placeholder="" onkeydown="if(event.key==='Enter') executeDialogConfirm(); if(event.key==='Escape') closeCustomDialog();">
+      </div>
+
       <div style="display: flex; gap: 8px; justify-content: center; margin-top: 6px;" id="dialog-buttons">
         <button class="btn-primary" onclick="closeCustomDialog()" style="width: 100%; padding: 10px;">OK</button>
       </div>
@@ -803,6 +864,22 @@
   </div>
 
   <script>
+    // DÉFINITIONS BILINGUES DES RÈGLES DE BASE
+    const DEFAULT_RULES_DICTIONARY = {
+      rule_1: {
+        fr: { title: "Abondement 1 pour 2", desc: "1 € versé pour chaque 2 € investis par le proche." },
+        en: { title: "1 to 2 Matching", desc: "1 € deposited for every 2 € invested by beneficiary." }
+      },
+      rule_2: {
+        fr: { title: "Abondement 1 pour 1", desc: "1 € versé pour chaque 1 € investi par le proche." },
+        en: { title: "1 to 1 Matching", desc: "1 € deposited for every 1 € invested by beneficiary." }
+      },
+      rule_3: {
+        fr: { title: "Flux mensuel fixe", desc: "Déversement programmé régulier chaque mois." },
+        en: { title: "Fixed Monthly Flow", desc: "Regular monthly scheduled transfer." }
+      }
+    };
+
     const I18N = {
       fr: {
         subtitle: "Simulateur de Transmission Vivante",
@@ -822,13 +899,20 @@
         lbl_b_cap_month: "Plafond / mois",
         lbl_b_month_spent: "Prélevé ce mois-ci",
         lbl_b_rule_desc: "Règle de transfert",
-        rule_desc_placeholder: "1 € pour 2 € investis",
+        opt_create_new_rule: "➕ Créer une nouvelle règle...",
+        m_rule_subtitle: "Définis le nom court affiché sur les cartes et le détail des conditions.",
+        lbl_rule_name: "Nom court (Titre)",
+        lbl_rule_details: "Description détaillée",
+        btn_save_rule: "Enregistrer la Règle",
+        rule_placeholder_title: "Abondement 1 pour 2",
+        rule_placeholder_desc: "1 € versé pour chaque 2 € investis sur son compte, plafonné à 150 € / mois.",
         btn_submit: "Valider & Enregistrer",
         btn_cancel: "Annuler",
         btn_save: "Enregistrer",
         btn_close: "Fermer",
         btn_delete: "Supprimer",
         btn_understood: "Compris !",
+        btn_validate: "Valider",
         b_list_title: "👥 Réserves Actives",
         data_mgmt_title: "💾 Gestion des Données",
         btn_export: "💾 Exporter",
@@ -839,6 +923,7 @@
         hero_transferred_total: "TOTAL TRANSMIS & EFFECTIF",
         hero_monthly_sub: "Flux global : +{val}/mois",
         hero_beneficiaries_sub: "{n} proche{s} soutenu{s}",
+        lbl_total_reserves_bottom: "Total des réserves :",
         lbl_withdraw: "📤 Déversement (vers le proche)",
         lbl_add: "📥 Rechargement (sur la réserve)",
         btn_confirm_withdraw: "Valider le Déversement",
@@ -850,7 +935,7 @@
         m_hero_res_title: "💰 Réserves Dédiées",
         m_hero_res_desc: "Ces réserves sont allouées de ton côté. Elles représentent la capacité d'abondement disponible pour tes proches.",
         m_celeb_title: "Félicitations !",
-        m_celeb_sub: "Déversements effectifs par proche :",
+        m_celeb_sub: "Déversements effectifs :",
         m_celeb_badge_title: "🏅 Badges d'Abondement KLON",
         m_celeb_continue: "Continuer l'Abondement",
         m_cap_title_prefix: "Capital Bourse de {name}",
@@ -864,7 +949,8 @@
         m_history_title_prefix: "📜 Historique de {name}",
         hist_cap_chart: "📈 Évol. Capital Bourse",
         hist_trans_chart: "⚡ Évol. Total Transmis",
-        hist_chart_min_records: "Au moins 2 relevés nécessaires pour tracer la courbe",
+        hist_chart_min_records: "Données insuffisantes pour tracer la courbe",
+        hist_chart_no_transfers: "Aucun déversement enregistré pour l'instant",
         hist_chart_latest: "Dernier : {val}",
         hist_details_title: "Détail des mouvements :",
         hist_no_movements: "Aucun mouvement enregistré.",
@@ -879,6 +965,10 @@
         dialog_withdraw_msg: "Déversement de <strong>{val}</strong> vers {name}",
         dialog_reload_ok: "Rechargement Validé",
         dialog_reload_msg: "Rechargement de <strong>{val}</strong> sur la réserve de {name}",
+        dialog_warn_rule_title: "Veuillez saisir un nom court pour la règle.",
+        dialog_confirm_delete_rule: "Es-tu sûr de vouloir supprimer définitivement la règle « {name} » ?",
+        prompt_rename_title: "Renommer le proche",
+        prompt_rename_msg: "Saisis le nouveau prénom pour ce proche :",
         backup_unsaved_title: "Sauvegarde Recommandée",
         backup_unsaved_msg: "De nouvelles modifications ont été enregistrées localement dans ton navigateur, mais n'ont pas encore été exportées en fichier JSON de sauvegarde.",
         help_main_reserve: "<strong>Principe de la Réserve Dédiée :</strong><br>Une réserve est une poche théorique de ton patrimoine allouée à un proche. Elle évolue avec tes apports et retraits, et se déverse vers son portefeuille selon ta règle d'abondement.",
@@ -888,7 +978,7 @@
         help_reserve_val_edit: "Verrouillé. Passe par « Enregistrer un mouvement » dans l'onglet Suivi.",
         help_month_spent: "Calculé automatiquement selon les mouvements enregistrés ce mois-ci.",
         help_cap_month: "Limite maximale autorisée pour le prélèvement mensuel sur la réserve.",
-        help_rule_desc: "Conditions de déblocage définies pour cette réserve.",
+        help_rule_desc: "Choisis une règle pour cette réserve. Utilise le crayon ✏️ pour la modifier ou l'option « ➕ Créer » pour en ajouter une nouvelle.",
         eco_disclaimer: "<strong>🤝 Transparence & Parrainage :</strong> Les liens ci-dessous sont des liens d'affiliation et de parrainage. En ouvrant un compte via ces accès, vous pouvez bénéficier des bonus de bienvenue proposés par les plateformes tout en soutenant le développement gratuit de la suite KLON.",
         eco_brokers: "📈 Banques & Courtiers",
         eco_crypto: "🪙 Crypto & Rendement Alternatif",
@@ -922,13 +1012,20 @@
         lbl_b_cap_month: "Cap / mo",
         lbl_b_month_spent: "Withdrawn this mo",
         lbl_b_rule_desc: "Transfer Rule",
-        rule_desc_placeholder: "$1 for every $2 invested",
+        opt_create_new_rule: "➕ Create a new rule...",
+        m_rule_subtitle: "Define the short title displayed on cards and specific conditions.",
+        lbl_rule_name: "Short Title",
+        lbl_rule_details: "Detailed Description",
+        btn_save_rule: "Save Rule",
+        rule_placeholder_title: "1 to 2 Matching",
+        rule_placeholder_desc: "1 € deposited for every 2 € invested in their account, capped at 150 € / mo.",
         btn_submit: "Save & Validate",
         btn_cancel: "Cancel",
         btn_save: "Save",
         btn_close: "Close",
         btn_delete: "Delete",
         btn_understood: "Got it!",
+        btn_validate: "Validate",
         b_list_title: "👥 Active Reserves",
         data_mgmt_title: "💾 Data Management",
         btn_export: "💾 Export",
@@ -939,6 +1036,7 @@
         hero_transferred_total: "TOTAL TRANSFERRED TO DATE",
         hero_monthly_sub: "Global flow: +{val}/mo",
         hero_beneficiaries_sub: "{n} supported beneficiar{ies}",
+        lbl_total_reserves_bottom: "Total reserves:",
         lbl_withdraw: "📤 Withdrawal (to beneficiary)",
         lbl_add: "📥 Reload (to reserve)",
         btn_confirm_withdraw: "Confirm Transfer",
@@ -950,7 +1048,7 @@
         m_hero_res_title: "💰 Dedicated Reserves",
         m_hero_res_desc: "These reserves are allocated on your side. They represent the matching capacity available for your loved ones.",
         m_celeb_title: "Congratulations!",
-        m_celeb_sub: "Effective transfers by beneficiary:",
+        m_celeb_sub: "Effective transfers:",
         m_celeb_badge_title: "🏅 KLON Matching Badges",
         m_celeb_continue: "Continue Matching",
         m_cap_title_prefix: "Stock Portfolio of {name}",
@@ -964,7 +1062,8 @@
         m_history_title_prefix: "📜 History of {name}",
         hist_cap_chart: "📈 Stock Portfolio History",
         hist_trans_chart: "⚡ Total Transferred History",
-        hist_chart_min_records: "At least 2 records required to display chart",
+        hist_chart_min_records: "Insufficient data to display chart",
+        hist_chart_no_transfers: "No transfers recorded yet",
         hist_chart_latest: "Latest: {val}",
         hist_details_title: "Movement details:",
         hist_no_movements: "No movements recorded yet.",
@@ -979,6 +1078,10 @@
         dialog_withdraw_msg: "Transfer of <strong>{val}</strong> to {name}",
         dialog_reload_ok: "Reload Confirmed",
         dialog_reload_msg: "Reload of <strong>{val}</strong> to {name}'s reserve",
+        dialog_warn_rule_title: "Please enter a short title for the rule.",
+        dialog_confirm_delete_rule: "Are you sure you want to permanently delete the rule \"{name}\"?",
+        prompt_rename_title: "Rename Loved One",
+        prompt_rename_msg: "Enter the new name for this beneficiary:",
         backup_unsaved_title: "Unsaved Changes",
         backup_unsaved_msg: "New movements or updates have been saved in your browser, but not exported to a JSON file yet.",
         help_main_reserve: "<strong>Dedicated Reserve Principle :</strong><br>A reserve is a theoretical pocket of your wealth allocated to a loved one. It expands with your contributions and flows into their brokerage according to your rules.",
@@ -988,7 +1091,7 @@
         help_reserve_val_edit: "Locked. Use « Record a movement » in KLON Tracker tab.",
         help_month_spent: "Calculated automatically from movements recorded this month.",
         help_cap_month: "Monthly cap limit allowed for withdrawals.",
-        help_rule_desc: "Specific unlocking conditions for this reserve.",
+        help_rule_desc: "Choose a rule for this reserve. Use the pencil ✏️ to edit it or the « ➕ Create » option to add a new one.",
         eco_disclaimer: "<strong>🤝 Transparency & Referrals :</strong> Links below are affiliate/referral links. Opening an account provides welcome bonuses while supporting free development of the KLON suite.",
         eco_brokers: "📈 Banks & Brokers",
         eco_crypto: "🪙 Crypto & Alternative Yield",
@@ -1018,7 +1121,8 @@
     let currentEditingId = null;
     let activePulseBeneficiaryId = null;
     let avatarTargetBeneficiaryId = null;
-    let draggedItemIndex = null;
+    let currentEditingRuleId = null;
+    let previousSelectedRuleId = '';
     let dialogConfirmCallback = null;
 
     // CROP VARS
@@ -1029,7 +1133,11 @@
 
     let localData = JSON.parse(localStorage.getItem('klon_pulse_db'));
     if (!localData || !Array.isArray(localData.beneficiaries)) {
-      localData = { currency: 'EUR', theme: 'dark', lang: 'fr', userName: '', lastResetMonth: '', hasUnsavedChanges: false, beneficiaries: [] };
+      localData = { 
+        currency: 'EUR', theme: 'dark', lang: 'fr', userName: '', 
+        lastResetMonth: '', hasUnsavedChanges: false, beneficiaries: [],
+        rules: null
+      };
       localStorage.setItem('klon_pulse_db', JSON.stringify(localData));
     }
     let db = localData;
@@ -1039,6 +1147,11 @@
     if (db.userName === undefined) db.userName = '';
     if (db.hasUnsavedChanges === undefined) db.hasUnsavedChanges = false;
     if (!db.lastResetMonth) db.lastResetMonth = new Date().toISOString().slice(0, 7);
+
+    // Initialisation 100 % vierge des règles
+    if (!Array.isArray(db.rules)) {
+      db.rules = [];
+    }
 
     function saveData() { localStorage.setItem('klon_pulse_db', JSON.stringify(db)); }
 
@@ -1135,20 +1248,20 @@
       });
 
       const nameInput = document.getElementById('user-name-input');
-      if (nameInput) {
-        nameInput.placeholder = t('user_name_placeholder');
-      }
-
-      const ruleInput = document.getElementById('in-b-rule-desc');
-      if (ruleInput) {
-        ruleInput.placeholder = t('rule_desc_placeholder');
-      }
+      if (nameInput) nameInput.placeholder = t('user_name_placeholder');
 
       const helpReserveEl = document.getElementById('help-reserve-val');
       if (helpReserveEl) {
         helpReserveEl.innerHTML = currentEditingId ? t('help_reserve_val_edit') : t('help_reserve_val_create');
       }
 
+      // Mise à jour propre des placeholders sans "Ex:"
+      const inRuleTitle = document.getElementById('in-rule-title');
+      if (inRuleTitle) inRuleTitle.placeholder = t('rule_placeholder_title');
+      const inRuleDesc = document.getElementById('in-rule-desc');
+      if (inRuleDesc) inRuleDesc.placeholder = t('rule_placeholder_desc');
+
+      populateRulesDropdown(document.getElementById('select-b-rule').value || '');
       renderBeneficiariesList();
       renderTab2();
     }
@@ -1157,9 +1270,214 @@
       const code = "12874482";
       const btn = document.getElementById('fortuneo-btn');
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code);
-      if (btn) btn.innerText = "✅ Code copié ! Redirection...";
+      if (btn) btn.innerText = db.lang === 'en' ? "✅ Code copied! Opening..." : "✅ Code copié ! Redirection...";
       window.open("https://www.fortuneo.fr", "_blank");
       setTimeout(() => { if (btn) btn.innerText = "Fortuneo (Code Parrain : 12874482)"; }, 1800);
+    }
+
+    /* --- GESTION DES RÈGLES --- */
+    function getRuleDisplayTitle(rule) {
+      if (!rule) return '';
+      const lang = db.lang === 'en' ? 'en' : 'fr';
+      if (rule.isDefault && DEFAULT_RULES_DICTIONARY[rule.id]) {
+        return DEFAULT_RULES_DICTIONARY[rule.id][lang].title;
+      }
+      return rule.title || '';
+    }
+
+    function getRuleDisplayDesc(rule) {
+      if (!rule) return '';
+      const lang = db.lang === 'en' ? 'en' : 'fr';
+      if (rule.isDefault && DEFAULT_RULES_DICTIONARY[rule.id]) {
+        return DEFAULT_RULES_DICTIONARY[rule.id][lang].desc;
+      }
+      return rule.desc || '';
+    }
+
+    function populateRulesDropdown(selectedRuleId = '') {
+      const select = document.getElementById('select-b-rule');
+      if (!select) return;
+      select.innerHTML = '';
+
+      if (!selectedRuleId && db.rules.length > 0) {
+        selectedRuleId = db.rules[0].id;
+      }
+
+      // 1. Liste des règles
+      db.rules.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        opt.innerText = getRuleDisplayTitle(r);
+        if (r.id === selectedRuleId) opt.selected = true;
+        select.appendChild(opt);
+      });
+
+      // 2. Entrée permanente de création
+      const createOpt = document.createElement('option');
+      createOpt.value = '__new__';
+      createOpt.innerText = t('opt_create_new_rule');
+      if (selectedRuleId === '__new__' || db.rules.length === 0) createOpt.selected = true;
+      select.appendChild(createOpt);
+
+      if (select.value !== '__new__') {
+        previousSelectedRuleId = select.value;
+      }
+
+      const btnEdit = document.getElementById('btn-edit-selected-rule');
+      if (btnEdit) {
+        btnEdit.style.display = (db.rules.length > 0 && select.value !== '__new__') ? 'inline-flex' : 'none';
+      }
+    }
+
+    function handleRuleDropdownChange(val) {
+      if (val === '__new__') {
+        openCreateRuleModal();
+      } else {
+        previousSelectedRuleId = val;
+        const btnEdit = document.getElementById('btn-edit-selected-rule');
+        if (btnEdit) btnEdit.style.display = 'inline-flex';
+      }
+    }
+
+    function getRuleForBeneficiary(b) {
+      if (!b) return null;
+      if (b.ruleId) {
+        const found = db.rules.find(r => r.id === b.ruleId);
+        if (found) return found;
+      }
+      if (b.ruleDesc) {
+        return { 
+          id: '', 
+          title: b.ruleDesc.length > 22 ? b.ruleDesc.slice(0, 20) + '...' : b.ruleDesc, 
+          desc: b.ruleDesc 
+        };
+      }
+      return db.rules.length > 0 ? db.rules[0] : null;
+    }
+
+    function openCreateRuleModal() {
+      currentEditingRuleId = null;
+      document.getElementById('m-rule-title-header').innerText = db.lang === 'en' ? '🏷️ New Transfer Rule' : '🏷️ Nouvelle Règle de Transfert';
+      
+      const inTitle = document.getElementById('in-rule-title');
+      inTitle.value = '';
+      inTitle.placeholder = t('rule_placeholder_title');
+
+      const inDesc = document.getElementById('in-rule-desc');
+      inDesc.value = '';
+      inDesc.placeholder = t('rule_placeholder_desc');
+
+      document.getElementById('btn-delete-rule').style.display = 'none';
+      document.getElementById('rule-modal').classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function editSelectedRule() {
+      const sel = document.getElementById('select-b-rule');
+      if (!sel || !sel.value || sel.value === '__new__') return;
+      const rule = db.rules.find(r => r.id === sel.value);
+      if (!rule) return;
+
+      currentEditingRuleId = rule.id;
+      const displayTitle = getRuleDisplayTitle(rule);
+      document.getElementById('m-rule-title-header').innerText = `✏️ ${displayTitle}`;
+      
+      const inTitle = document.getElementById('in-rule-title');
+      inTitle.value = displayTitle;
+      inTitle.placeholder = t('rule_placeholder_title');
+
+      const inDesc = document.getElementById('in-rule-desc');
+      inDesc.value = getRuleDisplayDesc(rule);
+      inDesc.placeholder = t('rule_placeholder_desc');
+
+      document.getElementById('btn-delete-rule').style.display = 'inline-flex';
+      document.getElementById('rule-modal').classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    // Consultation en lecture seule (Onglet 2)
+    function viewRuleReadOnly(ruleId, e) {
+      if (e) e.stopPropagation();
+      const rule = db.rules.find(r => r.id === ruleId);
+      if (!rule) return;
+
+      const title = getRuleDisplayTitle(rule);
+      const desc = getRuleDisplayDesc(rule) || t('card_no_rule');
+
+      showCustomDialog(
+        '🏷️',
+        title,
+        `<div style="font-size:0.9rem; line-height:1.6; text-align:left; background:var(--bg-color); padding:12px 14px; border-radius:8px; border:1px solid var(--border-color); color:var(--text-bright);">${desc}</div>`,
+        false,
+        null,
+        false,
+        '',
+        t('btn_understood')
+      );
+    }
+
+    function saveRuleFromModal() {
+      const title = document.getElementById('in-rule-title').value.trim();
+      const desc = document.getElementById('in-rule-desc').value.trim();
+
+      if (!title) {
+        showCustomDialog('⚠️', db.lang === 'en' ? 'Warning' : 'Attention', t('dialog_warn_rule_title'));
+        return;
+      }
+
+      if (currentEditingRuleId) {
+        const r = db.rules.find(i => i.id === currentEditingRuleId);
+        if (r) {
+          r.title = title;
+          r.desc = desc;
+          r.isDefault = false;
+        }
+      } else {
+        const newRule = { id: 'rule_' + Date.now(), title, desc, isDefault: false };
+        db.rules.push(newRule);
+        currentEditingRuleId = newRule.id;
+      }
+
+      markUnsavedChanges();
+      populateRulesDropdown(currentEditingRuleId);
+      closeRuleModal();
+      renderBeneficiariesList();
+      renderTab2();
+    }
+
+    function deleteRuleWithConfirmation() {
+      if (!currentEditingRuleId) return;
+      const rule = db.rules.find(r => r.id === currentEditingRuleId);
+      if (!rule) return;
+
+      const title = getRuleDisplayTitle(rule);
+      const confirmMsg = t('dialog_confirm_delete_rule', { name: title });
+
+      showCustomDialog('🗑️', t('btn_delete'), confirmMsg, true, () => {
+        db.rules = db.rules.filter(r => r.id !== rule.id);
+        
+        const fallbackRuleId = db.rules.length > 0 ? db.rules[0].id : '';
+        db.beneficiaries.forEach(b => {
+          if (b.ruleId === rule.id) b.ruleId = fallbackRuleId;
+        });
+
+        markUnsavedChanges();
+        populateRulesDropdown(fallbackRuleId);
+        closeRuleModal();
+        renderBeneficiariesList();
+        renderTab2();
+      }, false, '', t('btn_delete'));
+    }
+
+    function closeRuleModal() {
+      document.getElementById('rule-modal').classList.remove('active');
+      document.body.style.overflow = '';
+      currentEditingRuleId = null;
+
+      const sel = document.getElementById('select-b-rule');
+      if (sel && sel.value === '__new__') {
+        sel.value = previousSelectedRuleId || (db.rules.length > 0 ? db.rules[0].id : '');
+      }
     }
 
     /* --- CROP ENGINE --- */
@@ -1272,18 +1590,24 @@
       const box = document.getElementById('m-hero-res-list');
       box.innerHTML = '';
 
+      let grandTotalReserves = 0;
+
       if (db.beneficiaries.length === 0) {
         box.innerHTML = `<div style="text-align:center; opacity:0.6; padding:10px; font-size:0.8rem;">${db.lang === 'en' ? 'No reserves created yet.' : 'Aucune réserve créée pour l\'instant.'}</div>`;
       } else {
         db.beneficiaries.forEach(b => {
+          const resVal = b.reserve || 0;
+          grandTotalReserves += resVal;
           box.innerHTML += `
             <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-color); border:1px solid var(--border-color); padding:8px 10px; border-radius:6px; font-size:0.82rem;">
               <strong style="color:var(--text-bright);">${b.name}</strong>
-              <span style="color:var(--accent-yellow-bright); font-weight:bold;">${fmt(b.reserve)}</span>
+              <span style="color:var(--accent-yellow-bright); font-weight:bold;">${fmt(resVal)}</span>
             </div>
           `;
         });
       }
+
+      document.getElementById('m-hero-res-total-val').innerText = fmt(grandTotalReserves);
 
       document.getElementById('hero-reserves-modal').classList.add('active');
       document.body.style.overflow = 'hidden';
@@ -1309,6 +1633,7 @@
       }
 
       document.getElementById('m-celeb-msg').innerText = msg;
+      document.getElementById('m-celeb-sub-total-val').innerText = fmt(totalTransferred);
 
       const personList = document.getElementById('m-celeb-per-person-list');
       personList.innerHTML = '';
@@ -1357,6 +1682,26 @@
     function closeHeroCelebrationModal() {
       document.getElementById('hero-celeb-modal').classList.remove('active');
       document.body.style.overflow = '';
+    }
+
+    // RENOMMER EN 1 CLIC DEPUIS L'ONGLET 2 (COMME DANS KLON DE BASE)
+    function promptRenameBeneficiary(bId, e) {
+      if (e) e.stopPropagation();
+      const b = db.beneficiaries.find(i => i.id === bId);
+      if (!b) return;
+
+      const isEn = db.lang === 'en';
+      const dialogTitle = t('prompt_rename_title');
+      const dialogMsg = t('prompt_rename_msg');
+
+      showCustomDialog('✏️', dialogTitle, dialogMsg, false, (newVal) => {
+        if (newVal !== null && newVal.trim() !== '') {
+          b.name = newVal.trim();
+          markUnsavedChanges();
+          renderBeneficiariesList();
+          renderTab2();
+        }
+      }, true, b.name);
     }
 
     function openQuickCapModal(bId, e) {
@@ -1475,7 +1820,8 @@
       const globalCapital = parseFloat(document.getElementById('in-b-global-capital').value) || 0;
       const myMonthly = parseFloat(document.getElementById('in-b-my-monthly').value) || 0;
       const capMonth = parseFloat(document.getElementById('in-b-cap-month').value) || 0;
-      const ruleDesc = document.getElementById('in-b-rule-desc').value.trim();
+      let ruleId = document.getElementById('select-b-rule').value;
+      if (ruleId === '__new__') ruleId = db.rules.length > 0 ? db.rules[0].id : '';
 
       if (!name) { 
         showCustomDialog('⚠️', db.lang === 'en' ? 'Warning' : 'Attention', db.lang === 'en' ? 'Please enter a name.' : 'Veuillez saisir un nom.'); 
@@ -1500,13 +1846,13 @@
           }
           b.myMonthly = myMonthly;
           b.capMonth = capMonth; 
-          b.ruleDesc = ruleDesc;
+          b.ruleId = ruleId;
         }
         cancelEditing();
       } else {
         const newB = {
           id: Date.now().toString(), name, reserve, globalCapital,
-          myMonthly, capMonth, ruleDesc, transferred: 0, history: [],
+          myMonthly, capMonth, ruleId, transferred: 0, history: [],
           lastWithdraw: 0, lastAdd: 0, avatar: null
         };
         db.beneficiaries.push(newB);
@@ -1528,7 +1874,7 @@
       document.getElementById('in-b-my-monthly').value = '';
       document.getElementById('in-b-cap-month').value = '';
       document.getElementById('in-b-month-spent-manual').value = '';
-      document.getElementById('in-b-rule-desc').value = '';
+      populateRulesDropdown('');
 
       const helpReserveEl = document.getElementById('help-reserve-val');
       if (helpReserveEl) {
@@ -1546,11 +1892,19 @@
       }
 
       db.beneficiaries.forEach(b => {
+        const rule = getRuleForBeneficiary(b);
+        const ruleTitle = getRuleDisplayTitle(rule);
+        
+        // Texte sobre sous le nom sans encadré ni fond
+        const ruleText = ruleTitle 
+          ? `<div class="beneficiary-rule-text">🏷️ ${ruleTitle}</div>` 
+          : '';
+
         box.innerHTML += `
           <div class="beneficiary-row" onclick="editBeneficiary('${b.id}')">
             <div class="beneficiary-info">
               <strong style="color:var(--text-bright); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${b.name}</strong>
-              <div class="beneficiary-rule">${b.ruleDesc || t('card_no_rule')}</div>
+              <div style="margin-top:2px;">${ruleText}</div>
             </div>
             <div class="beneficiary-amount-box">
               <strong style="color:var(--accent-yellow-bright); font-size:1rem;">${fmt(b.reserve)}</strong>
@@ -1580,7 +1934,7 @@
       document.getElementById('in-b-my-monthly').value = b.myMonthly || '';
       document.getElementById('in-b-cap-month').value = b.capMonth || '';
       document.getElementById('in-b-month-spent-manual').value = getThisMonthSpent(b) || 0;
-      document.getElementById('in-b-rule-desc').value = b.ruleDesc || '';
+      populateRulesDropdown(b.ruleId || '');
       
       document.getElementById('form-title').innerText = `✏️ ${b.name}`;
       document.getElementById('btn-submit-form').innerText = t('btn_submit');
@@ -1605,7 +1959,7 @@
         markUnsavedChanges(); 
         renderBeneficiariesList(); 
         renderTab2();
-      }, 'OK', t('btn_delete'));
+      }, false, '', t('btn_delete'));
     }
 
     function getThisMonthSpent(b) {
@@ -1657,11 +2011,20 @@
                + ${stockPortfolioLabel}
              </div>`;
 
+        // Règle épurée : simple texte cliquable au survol dans l'Onglet 2 pour consultation
+        const rule = getRuleForBeneficiary(b);
+        const ruleTitle = getRuleDisplayTitle(rule);
+        
+        const ruleHTML = ruleTitle 
+          ? `<span class="clickable-zone beneficiary-rule-text" onclick="viewRuleReadOnly('${rule.id}', event)" title="${isEn ? 'Click to view rule details' : 'Cliquer pour voir le détail de la règle'}">🏷️ ${ruleTitle}</span>` 
+          : '';
+
         const card = document.createElement('div');
         card.className = `pulse-card ${isCapReached ? 'cap-reached' : ''}`;
         card.setAttribute('draggable', 'true');
         card.dataset.index = index;
 
+        // Le nom du proche est désormais dans une clickable-zone pour le renommer en 1 clic !
         card.innerHTML = `
           <div class="pulse-card-header">
             <div class="pulse-avatar" onclick="triggerAvatarUpload('${b.id}', event)" title="${isEn ? 'Adjust photo' : 'Ajuster la photo du proche'}">
@@ -1669,8 +2032,11 @@
             </div>
             <div style="flex:1; display:flex; justify-content:space-between; align-items:flex-start;">
               <div>
-                <div style="display:flex; align-items:center; gap:6px;">
-                  <strong style="font-size:1rem; color:var(--text-bright);">${b.name}</strong>
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                  <strong class="clickable-zone" onclick="promptRenameBeneficiary('${b.id}', event)" title="${isEn ? 'Click to rename' : 'Cliquer pour renommer'}" style="font-size:1rem; color:var(--text-bright);">
+                    ${b.name}
+                  </strong>
+                  ${ruleHTML}
                   ${capBadge}
                   <button class="history-scroll-btn" onclick="openHistoryModal('${b.id}')" title="📜 History & Charts">📜</button>
                 </div>
@@ -1705,35 +2071,10 @@
           </div>
         `;
 
-        card.addEventListener('dragstart', (e) => {
-          draggedItemIndex = index;
-          card.classList.add('dragging');
-          e.dataTransfer.effectAllowed = 'move';
-        });
-
-        card.addEventListener('dragend', () => {
-          card.classList.remove('dragging');
-        });
-
-        card.addEventListener('dragover', (e) => {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
-        });
-
-        card.addEventListener('drop', (e) => {
-          e.preventDefault();
-          const targetIndex = parseInt(card.dataset.index);
-          if (draggedItemIndex !== null && draggedItemIndex !== targetIndex) {
-            const movedItem = db.beneficiaries.splice(draggedItemIndex, 1)[0];
-            db.beneficiaries.splice(targetIndex, 0, movedItem);
-            markUnsavedChanges();
-            renderTab2();
-            renderBeneficiariesList();
-          }
-        });
-
         container.appendChild(card);
       });
+
+      initTab2DragAndDrop();
 
       const heroAllocatedEl = document.getElementById('lbl-hero-allocated');
       if (heroAllocatedEl) {
@@ -1754,6 +2095,133 @@
 
       document.getElementById('hero-monthly-sub').innerText = t('hero_monthly_sub', { val: fmt(totalMonthly) });
       document.getElementById('hero-beneficiaries-sub').innerText = bText;
+    }
+
+    /* --- DRAG & DROP DESKTOP ET MOBILE PROPRE --- */
+    let draggedItemIndex = null;
+    let isTouchDragInitialized = false;
+
+    function initTab2DragAndDrop() {
+      const container = document.getElementById('pulse-cards-container');
+      if (!container) return;
+      const cards = container.querySelectorAll('.pulse-card');
+
+      cards.forEach((card, index) => {
+        card.ondragstart = (e) => {
+          draggedItemIndex = index;
+          card.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+        };
+        card.ondragend = () => { card.classList.remove('dragging'); };
+        card.ondragover = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
+        card.ondrop = (e) => {
+          e.preventDefault();
+          const targetIndex = parseInt(card.dataset.index);
+          if (draggedItemIndex !== null && draggedItemIndex !== targetIndex) {
+            const movedItem = db.beneficiaries.splice(draggedItemIndex, 1)[0];
+            db.beneficiaries.splice(targetIndex, 0, movedItem);
+            markUnsavedChanges();
+            renderTab2();
+            renderBeneficiariesList();
+          }
+        };
+
+        card.ontouchstart = (e) => {
+          if (e.target.closest('input, button, select, .clickable-zone, .pulse-avatar, .beneficiary-rule-text, .history-scroll-btn')) return;
+          const touch = e.touches[0];
+          startCardTouchDrag(card, touch, index);
+        };
+      });
+
+      if (!isTouchDragInitialized) {
+        document.addEventListener('touchmove', handleDocumentCardTouchMove, { passive: false });
+        document.addEventListener('touchend', endCardTouchDrag);
+        document.addEventListener('touchcancel', endCardTouchDrag);
+        isTouchDragInitialized = true;
+      }
+    }
+
+    let activeTouchCard = null;
+    let touchPressTimer = null;
+    let startTouchX = 0, startTouchY = 0;
+    let isDraggingActive = false;
+
+    function startCardTouchDrag(card, touch, index) {
+      activeTouchCard = card;
+      draggedItemIndex = index;
+      startTouchX = touch.clientX;
+      startTouchY = touch.clientY;
+
+      touchPressTimer = setTimeout(() => {
+        isDraggingActive = true;
+        activeTouchCard.classList.add('dragging', 'long-pressing');
+        activeTouchCard.style.pointerEvents = 'none';
+        document.body.style.userSelect = 'none';
+        document.body.style.overflow = 'hidden';
+        if (navigator.vibrate) navigator.vibrate(35);
+      }, 220);
+    }
+
+    function handleDocumentCardTouchMove(e) {
+      if (!activeTouchCard) return;
+      const touch = e.touches[0];
+      const moveX = Math.abs(touch.clientX - startTouchX);
+      const moveY = Math.abs(touch.clientY - startTouchY);
+
+      if (!isDraggingActive && (moveX > 10 || moveY > 10)) {
+        clearTimeout(touchPressTimer);
+        touchPressTimer = null;
+        activeTouchCard = null;
+        return;
+      }
+
+      if (isDraggingActive) {
+        e.preventDefault();
+        const elementUnderFinger = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (!elementUnderFinger) return;
+
+        const container = document.getElementById('pulse-cards-container');
+        const targetCard = elementUnderFinger.closest('.pulse-card');
+        if (targetCard && targetCard !== activeTouchCard && targetCard.parentNode === container) {
+          const targetRect = targetCard.getBoundingClientRect();
+          const targetMiddleY = targetRect.top + (targetRect.height / 2);
+          if (touch.clientY < targetMiddleY) {
+            container.insertBefore(activeTouchCard, targetCard);
+          } else {
+            container.insertBefore(activeTouchCard, targetCard.nextSibling);
+          }
+        }
+      }
+    }
+
+    function endCardTouchDrag() {
+      clearTimeout(touchPressTimer);
+      touchPressTimer = null;
+
+      if (activeTouchCard) {
+        activeTouchCard.classList.remove('dragging', 'long-pressing');
+        activeTouchCard.style.pointerEvents = '';
+        document.body.style.userSelect = '';
+        document.body.style.overflow = '';
+
+        if (isDraggingActive) {
+          const container = document.getElementById('pulse-cards-container');
+          const newCards = container.querySelectorAll('.pulse-card');
+          const newBeneficiaries = [];
+          newCards.forEach(c => {
+            const idx = parseInt(c.dataset.index);
+            if (db.beneficiaries[idx]) newBeneficiaries.push(db.beneficiaries[idx]);
+          });
+          if (newBeneficiaries.length === db.beneficiaries.length) {
+            db.beneficiaries = newBeneficiaries;
+            markUnsavedChanges();
+            renderTab2();
+            renderBeneficiariesList();
+          }
+        }
+      }
+      activeTouchCard = null;
+      isDraggingActive = false;
     }
 
     function openPulseActionModal(bId) {
@@ -1790,9 +2258,19 @@
       document.body.style.overflow = 'hidden';
     }
 
+    // CORRECTION DU SOLDE LORS DE LA SUPPRESSION D'UN MOUVEMENT
     function deleteHistoryItem(histId) {
       const b = db.beneficiaries.find(i => i.id === activePulseBeneficiaryId);
       if (!b || !b.history) return;
+
+      const itemToDelete = b.history.find(h => h.id === histId || String(h.id) === String(histId));
+      if (!itemToDelete) return;
+
+      if (itemToDelete.type === 'withdraw') {
+        b.reserve = (b.reserve || 0) + itemToDelete.amount;
+      } else if (itemToDelete.type === 'add') {
+        b.reserve = Math.max(0, (b.reserve || 0) - Math.abs(itemToDelete.amount));
+      }
 
       b.history = b.history.filter(h => h.id !== histId && String(h.id) !== String(histId));
       
@@ -1805,28 +2283,35 @@
       markUnsavedChanges();
       renderHistoryModalContent();
       renderTab2();
+      renderBeneficiariesList();
     }
 
+    /* --- RENDU ROBUSTE DES GRAPHIQUES SANS BUG DES "1 ET 1" --- */
     function renderSingleChart(dataArray, valueKey, color, labelTitle, unitSymbol) {
-      if (!dataArray || dataArray.length < 2) {
+      const values = (dataArray || []).map(d => d[valueKey] || 0);
+      const actualMax = Math.max(...values, 0);
+
+      if (!dataArray || dataArray.length < 2 || actualMax === 0) {
         return `
           <div class="history-chart-container">
-            <div class="history-chart-title" style="color: ${color};">${labelTitle}</div>
-            <div style="text-align: center; font-size: 0.75rem; opacity: 0.6; padding: 20px 0;">
-              ${t('hist_chart_min_records')}
+            <div class="history-chart-title" style="color: ${color};">
+              <span>${labelTitle}</span>
+              <span style="opacity:0.8;">${fmt(actualMax)}</span>
+            </div>
+            <div style="text-align: center; font-size: 0.75rem; opacity: 0.6; padding: 18px 0;">
+              ${actualMax === 0 ? t('hist_chart_no_transfers') : t('hist_chart_min_records')}
             </div>
           </div>
         `;
       }
 
-      const W = 380, H = 100, padLeft = 35, padRight = 15, padTop = 12, padBottom = 20;
+      const W = 380, H = 100, padLeft = 40, padRight = 15, padTop = 14, padBottom = 20;
       const chartW = W - padLeft - padRight;
       const chartH = H - padTop - padBottom;
 
-      const values = dataArray.map(d => d[valueKey] || 0);
       const minVal = 0;
-      const actualMax = Math.max(...values, 1);
-      const maxVal = actualMax * 1.1; 
+      let maxVal = Math.ceil(actualMax * 1.15);
+      if (maxVal < 10) maxVal = 10;
       const midVal = Math.round(maxVal / 2);
 
       const getX = (idx) => padLeft + (idx / (dataArray.length - 1)) * chartW;
@@ -1839,7 +2324,7 @@
         const displayLabel = Math.round(val);
         gridLinesHTML += `
           <line x1="${padLeft}" y1="${yPos}" x2="${W - padRight}" y2="${yPos}" stroke="var(--border-color)" stroke-dasharray="3,3" stroke-width="1" />
-          <text x="${padLeft - 4}" y="${yPos + 3}" fill="var(--text-main)" font-size="8" text-anchor="end" opacity="0.6">${displayLabel}</text>
+          <text x="${padLeft - 4}" y="${yPos + 3}" fill="var(--text-main)" font-size="8" text-anchor="end" opacity="0.65">${displayLabel}</text>
         `;
       });
 
@@ -1889,7 +2374,7 @@
       let timeSeries = [];
       let runningTrans = 0;
 
-      if (Array.isArray(b.history)) {
+      if (Array.isArray(b.history) && b.history.length > 0) {
         b.history.forEach(h => {
           if (h.type === 'withdraw') runningTrans += h.amount;
           const cap = (h.globalCapital !== undefined && h.globalCapital > 0) ? h.globalCapital : currentCapital;
@@ -1899,16 +2384,16 @@
             transferred: runningTrans
           });
         });
+
+        timeSeries.push({
+          date: new Date().toISOString(),
+          capital: currentCapital,
+          transferred: currentTransferred
+        });
       }
 
-      timeSeries.push({
-        date: new Date().toISOString(),
-        capital: currentCapital,
-        transferred: currentTransferred
-      });
-
       const chartCapitalHTML = renderSingleChart(timeSeries, 'capital', 'var(--accent-blue)', t('hist_cap_chart'), db.currency);
-      const chartTransferredHTML = renderSingleChart(timeSeries, 'transferred', 'var(--accent-yellow-bright)', t('hist_trans_chart'), db.currency);
+      const chartTransferredHTML = renderSingleChart(timeSeries, 'transferred', 'var(--accent-green-bright)', t('hist_trans_chart'), db.currency);
 
       let historyListHTML = '';
       if (!Array.isArray(b.history) || b.history.length === 0) {
@@ -1934,9 +2419,9 @@
             `;
           } else {
             const isWithdraw = (h.amount > 0);
-            const color = isWithdraw ? 'var(--accent-yellow-bright)' : 'var(--accent-green-bright)';
+            const color = isWithdraw ? 'var(--accent-green-bright)' : 'var(--accent-yellow-bright)';
             const label = isWithdraw ? t('hist_type_withdraw') : t('hist_type_reload');
-            const sign = isWithdraw ? '-' : '+';
+            const sign = '+'; // Le déversement vers le proche est bien positif (+) !
             const valAbs = Math.abs(h.amount);
 
             historyListHTML += `
@@ -2045,50 +2530,79 @@
       renderTab2();
     }
 
-    function showCustomDialog(icon, title, message, isConfirm = false, onConfirm = null, customBtnLabel = 'OK', confirmBtnText = null) {
+    /* --- MODALE DE DIALOGUE UNIFIÉE (COMME DANS KLON DE BASE) --- */
+    function showCustomDialog(icon, title, message, isConfirm = false, onConfirm = null, isInput = false, defaultValue = '', customConfirmBtnText = null) {
       document.getElementById('dialog-icon').innerText = icon || 'ℹ️';
       document.getElementById('dialog-title').innerText = title || 'Notification';
       document.getElementById('dialog-message').innerHTML = message || '';
 
+      const inputContainer = document.getElementById('dialog-input-container');
+      const textInput = document.getElementById('dialog-text-input');
       const btnBox = document.getElementById('dialog-buttons');
+
       dialogConfirmCallback = onConfirm;
 
-      if (isConfirm) {
-        const confirmLabel = confirmBtnText || t('btn_reset');
+      if (isInput) {
+        inputContainer.style.display = 'block';
+        textInput.value = defaultValue;
         btnBox.innerHTML = `
-          <button class="btn-reset" onclick="executeDialogConfirm()" style="flex: 1; padding: 8px;">${confirmLabel}</button>
-          <button class="btn-secondary" onclick="closeCustomDialog()" style="flex: 1; padding: 8px;">${t('btn_cancel')}</button>
+          <button class="btn-primary" onclick="executeDialogConfirm()" style="flex: 1; padding: 10px;">${t('btn_validate')}</button>
+          <button class="btn-secondary" onclick="closeCustomDialog()" style="flex: 1; padding: 10px;">${t('btn_cancel')}</button>
         `;
+        document.getElementById('custom-dialog-modal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+        setTimeout(() => { textInput.focus(); textInput.select(); }, 100);
+      } else if (isConfirm) {
+        inputContainer.style.display = 'none';
+        const confirmBtnLabel = customConfirmBtnText || t('btn_reset');
+        btnBox.innerHTML = `
+          <button class="btn-reset" onclick="executeDialogConfirm()" style="flex: 1; padding: 10px;">${confirmBtnLabel}</button>
+          <button class="btn-secondary" onclick="closeCustomDialog()" style="flex: 1; padding: 10px;">${t('btn_cancel')}</button>
+        `;
+        document.getElementById('custom-dialog-modal').classList.add('active');
+        document.body.style.overflow = 'hidden';
       } else {
+        inputContainer.style.display = 'none';
+        const okLabel = customConfirmBtnText || 'OK';
         btnBox.innerHTML = `
-          <button class="btn-primary" onclick="closeCustomDialog()" style="width: 100%; padding: 8px;">${customBtnLabel}</button>
+          <button class="btn-primary" onclick="closeCustomDialog()" style="width: 100%; padding: 10px;">${okLabel}</button>
         `;
+        document.getElementById('custom-dialog-modal').classList.add('active');
+        document.body.style.overflow = 'hidden';
       }
-      document.getElementById('custom-dialog-modal').classList.add('active');
-      document.body.style.overflow = 'hidden';
     }
 
     function closeCustomDialog() {
       document.getElementById('custom-dialog-modal').classList.remove('active');
+      document.getElementById('dialog-input-container').style.display = 'none';
       document.body.style.overflow = '';
       dialogConfirmCallback = null;
     }
 
     function executeDialogConfirm() {
       const cb = dialogConfirmCallback;
+      const textInput = document.getElementById('dialog-text-input');
+      const isInputVisible = document.getElementById('dialog-input-container').style.display !== 'none';
+      const val = isInputVisible ? textInput.value : null;
+
       closeCustomDialog();
-      if (typeof cb === 'function') cb();
+
+      if (typeof cb === 'function') {
+        cb(val);
+      }
     }
 
     function exportJSON() {
       try {
         const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
+        const url = URL.createObjectURL(blob);
+        a.href = url;
         a.download = `KLON_PULSE_backup_${new Date().toISOString().slice(0, 10)}.json`;
         document.body.appendChild(a); 
         a.click(); 
         document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
 
         db.hasUnsavedChanges = false;
         saveData();
@@ -2110,6 +2624,7 @@
           if (imported && Array.isArray(imported.beneficiaries)) {
             db = imported; 
             db.hasUnsavedChanges = false;
+            if (!Array.isArray(db.rules)) db.rules = [];
             checkMonthlyReset();
             saveData(); 
             document.getElementById('user-name-input').value = db.userName || '';
@@ -2117,6 +2632,9 @@
             changeLanguage(db.lang || 'fr');
             changeTheme(db.theme || 'dark');
             updateBackupWarningUI();
+            populateRulesDropdown('');
+            renderBeneficiariesList();
+            renderTab2();
             showCustomDialog('✅', db.lang === 'en' ? 'Import Successful' : 'Importation Réussie', (db.lang === 'en') ? 'KLON Pulse database restored successfully!' : 'Vos données KLON Pulse ont été restaurées avec succès !');
           } else {
             showCustomDialog('⚠️', db.lang === 'en' ? 'Invalid File' : 'Fichier Invalide', (db.lang === 'en') ? 'The JSON backup file is invalid.' : 'Le fichier JSON est invalide.');
@@ -2132,15 +2650,17 @@
     function confirmResetDialog() {
       showCustomDialog('🗑️', t('btn_reset'), (db.lang === 'en') ? 'Are you sure you want to reset all Pulse reserves to zero?' : 'Es-tu sûr de vouloir réinitialiser toutes les réserves de KLON Pulse à zéro ?', true, () => {
         db.beneficiaries = [];
+        db.rules = [];
         db.userName = '';
         db.hasUnsavedChanges = false;
         cancelEditing();
         saveData();
         updateBackupWarningUI();
         document.getElementById('user-name-input').value = '';
+        populateRulesDropdown('');
         renderBeneficiariesList();
         renderTab2();
-      }, 'OK', t('btn_reset'));
+      }, false, '', t('btn_reset'));
     }
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -2152,14 +2672,7 @@
       changeTheme(db.theme || 'dark');
 
       const nameInput = document.getElementById('user-name-input');
-      if (nameInput) {
-        nameInput.placeholder = t('user_name_placeholder');
-      }
-
-      const ruleInput = document.getElementById('in-b-rule-desc');
-      if (ruleInput) {
-        ruleInput.placeholder = t('rule_desc_placeholder');
-      }
+      if (nameInput) nameInput.placeholder = t('user_name_placeholder');
 
       const helpReserveEl = document.getElementById('help-reserve-val');
       if (helpReserveEl) {
@@ -2167,6 +2680,7 @@
       }
 
       updateBackupWarningUI();
+      populateRulesDropdown('');
       renderBeneficiariesList();
       
       const heroAllocatedEl = document.getElementById('lbl-hero-allocated');
