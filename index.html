@@ -300,7 +300,7 @@
       padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; width: 100%;
     }
     .history-chart-title {
-      font-size: 0.78rem; font-weight: bold; display: flex; justify-content: space-between;
+      font-size: 0.78rem; font-weight: bold; display: flex; justify-content: space-between; align-items: center;
     }
 
     .history-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
@@ -456,7 +456,7 @@
             <div>
               <div class="field-header">
                 <div class="field-label-text">
-                  <span data-i18n="lbl_b_global_capital">Son Capital Bourse</span>
+                  <span data-i18n="lbl_b_global_capital">Son Portefeuille Bourse</span>
                   <button type="button" class="tooltip-btn" onclick="toggleHelp('help-global-cap', event)">?</button>
                 </div>
               </div>
@@ -654,7 +654,7 @@
 
   <input type="file" id="avatar-file-input" accept="image/*" style="display: none;" onchange="handleImageSelect(event)">
 
-  <!-- MODALE CROP IMAGE -->
+  <!-- MODALE CROP IMAGE AVEC BOUTON POUR RETIRER LA PHOTO -->
   <div id="crop-modal" class="modal-overlay">
     <div class="modal-card">
       <div class="card-title" data-i18n="crop_title">📸 Ajuster la Photo du Proche</div>
@@ -667,6 +667,7 @@
           <input type="range" id="zoom-slider" min="0.5" max="3" step="0.05" value="1" style="flex:1;">
         </div>
         <button class="btn-primary" onclick="confirmCrop()" style="width: 100%;" data-i18n="crop_confirm">Valider la photo</button>
+        <button type="button" class="btn-danger" id="btn-remove-avatar" onclick="removeAvatarPhoto()" style="width: 100%; display: none;" data-i18n="crop_remove">🗑️ Retirer la photo</button>
       </div>
 
       <button class="btn-secondary" onclick="closeCropModal()" data-i18n="crop_close">Fermer</button>
@@ -731,11 +732,8 @@
       <div class="card-title" style="justify-content: center; font-size: 1.25rem;" id="m-celeb-title" data-i18n="m_celeb_title">Félicitations !</div>
       <p style="font-size: 0.85rem; line-height: 1.5; color: var(--text-bright); font-weight: bold;" id="m-celeb-msg"></p>
       
-      <div style="border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 4px; text-align: left;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-          <span style="font-size: 0.8rem; font-weight: bold; color: var(--accent-green-bright);" data-i18n="m_celeb_sub">Déversements effectifs :</span>
-          <strong id="m-celeb-sub-total-val" style="color: var(--accent-green-bright); font-size: 0.95rem;">0 €</strong>
-        </div>
+      <!-- RÉCAPITULATIF DIRECT PAR PROCHE -->
+      <div style="border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 6px; text-align: left;">
         <div id="m-celeb-per-person-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
       </div>
 
@@ -748,10 +746,10 @@
     </div>
   </div>
 
-  <!-- MODALE QUICK UPDATE CAPITAL BOURSE : LIGNE VERTE ÉPURÉE SANS BOÎTE -->
+  <!-- MODALE QUICK UPDATE PORTEFEUILLE BOURSE : LIGNE VERTE ÉPURÉE SANS BOÎTE -->
   <div id="quick-cap-modal" class="modal-overlay">
     <div class="modal-card">
-      <div class="card-title" id="m-cap-title">Capital Bourse</div>
+      <div class="card-title" id="m-cap-title">Portefeuille Bourse</div>
       <p style="font-size: 0.8rem; opacity: 0.8;" data-i18n="m_cap_desc">Saisis la valeur actuelle du portefeuille boursier du proche pour mettre à jour sa trajectoire.</p>
       
       <div id="m-cap-share-info" style="font-size: 0.82rem; color: var(--accent-green-bright); font-weight: bold; text-align: center; margin: 4px 0 8px 0; display: none;"></div>
@@ -845,7 +843,7 @@
     </div>
   </div>
 
-  <!-- MODALE DIALOGUE UNIFIÉE (COMME DANS KLON DE BASE AVEC CHAMP DE SAISIE POUR RENOMMER) -->
+  <!-- MODALE DIALOGUE UNIFIÉE (SAISIE, CONFIRMATION ET NOTIFICATION) -->
   <div id="custom-dialog-modal" class="modal-overlay" style="z-index: 200;">
     <div class="modal-card" style="max-width: 360px; text-align: center;">
       <div style="font-size: 2.6rem; line-height: 1;" id="dialog-icon">ℹ️</div>
@@ -893,7 +891,7 @@
         user_name_placeholder: "Alpha Picker",
         form_add_title: "Nouvelle Réserve",
         lbl_b_name: "Nom",
-        lbl_b_global_capital: "Son Capital Bourse",
+        lbl_b_global_capital: "Son Portefeuille Bourse",
         lbl_b_reserve: "Réserve",
         lbl_b_my_monthly: "Ton Flux / mois",
         lbl_b_cap_month: "Plafond / mois",
@@ -938,7 +936,7 @@
         m_celeb_sub: "Déversements effectifs :",
         m_celeb_badge_title: "🏅 Badges d'Abondement KLON",
         m_celeb_continue: "Continuer l'Abondement",
-        m_cap_title_prefix: "Capital Bourse de {name}",
+        m_cap_title_prefix: "Portefeuille de {name}",
         m_cap_desc: "Saisis la valeur actuelle du portefeuille boursier du proche pour mettre à jour sa trajectoire.",
         m_cap_share: "Tes déversements représentent {pct}% de son portefeuille actuel.",
         m_plafond_title_prefix: "Plafond Mensuel de {name}",
@@ -947,19 +945,20 @@
         m_flow_desc: "Montant théorique que tu apportes chaque mois pour alimenter cette réserve.",
         m_pulse_title_prefix: "Mouvement sur la Réserve de {name}",
         m_history_title_prefix: "📜 Historique de {name}",
-        hist_cap_chart: "📈 Évol. Capital Bourse",
+        hist_cap_chart: "📈 Évol. Portefeuille Bourse",
         hist_trans_chart: "⚡ Évol. Total Transmis",
         hist_chart_min_records: "Données insuffisantes pour tracer la courbe",
         hist_chart_no_transfers: "Aucun déversement enregistré pour l'instant",
         hist_chart_latest: "Dernier : {val}",
         hist_details_title: "Détail des mouvements :",
         hist_no_movements: "Aucun mouvement enregistré.",
-        hist_cap_update: "📈 Maj Capital Bourse",
+        hist_cap_update: "📈 Maj Portefeuille",
         hist_type_withdraw: "Déversement",
         hist_type_reload: "Rechargement",
         crop_title: "📸 Ajuster la Photo du Proche",
         crop_desc: "Glisse l'image pour la centrer et utilise le zoom.",
         crop_confirm: "Valider la photo",
+        crop_remove: "🗑️ Retirer la photo",
         crop_close: "Fermer",
         dialog_withdraw_ok: "Déversement Validé",
         dialog_withdraw_msg: "Déversement de <strong>{val}</strong> vers {name}",
@@ -1051,7 +1050,7 @@
         m_celeb_sub: "Effective transfers:",
         m_celeb_badge_title: "🏅 KLON Matching Badges",
         m_celeb_continue: "Continue Matching",
-        m_cap_title_prefix: "Stock Portfolio of {name}",
+        m_cap_title_prefix: "Portfolio of {name}",
         m_cap_desc: "Enter the current total value of the beneficiary's brokerage account to update their trajectory.",
         m_cap_share: "Your transfers represent {pct}% of their current portfolio.",
         m_plafond_title_prefix: "Monthly Cap of {name}",
@@ -1067,12 +1066,13 @@
         hist_chart_latest: "Latest: {val}",
         hist_details_title: "Movement details:",
         hist_no_movements: "No movements recorded yet.",
-        hist_cap_update: "📈 Stock Portfolio Update",
+        hist_cap_update: "📈 Portfolio Update",
         hist_type_withdraw: "Transfer",
         hist_type_reload: "Reload",
         crop_title: "📸 Adjust Photo",
         crop_desc: "Drag the image to center it and use zoom.",
         crop_confirm: "Confirm photo",
+        crop_remove: "🗑️ Remove photo",
         crop_close: "Close",
         dialog_withdraw_ok: "Transfer Confirmed",
         dialog_withdraw_msg: "Transfer of <strong>{val}</strong> to {name}",
@@ -1295,47 +1295,40 @@
     }
 
     function populateRulesDropdown(selectedRuleId = '') {
-  const select = document.getElementById('select-b-rule');
-  if (!select) return;
-  select.innerHTML = '';
+      const select = document.getElementById('select-b-rule');
+      if (!select) return;
+      select.innerHTML = '';
 
-  // 1. Option neutre par défaut pour éviter le blocage du "onchange"
-  const defaultOpt = document.createElement('option');
-  defaultOpt.value = '';
-  defaultOpt.innerText = db.lang === 'en' ? '-- Select or create a rule --' : '-- Choisir ou créer une règle --';
-  defaultOpt.disabled = false;
-  select.appendChild(defaultOpt);
+      if (!selectedRuleId && db.rules.length > 0) {
+        selectedRuleId = db.rules[0].id;
+      }
 
-  // 2. Liste des règles existantes
-  db.rules.forEach(r => {
-    const opt = document.createElement('option');
-    opt.value = r.id;
-    opt.innerText = getRuleDisplayTitle(r);
-    if (r.id === selectedRuleId) opt.selected = true;
-    select.appendChild(opt);
-  });
+      // 1. Liste des règles
+      db.rules.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        opt.innerText = getRuleDisplayTitle(r);
+        if (r.id === selectedRuleId) opt.selected = true;
+        select.appendChild(opt);
+      });
 
-  // 3. Entrée permanente de création
-  const createOpt = document.createElement('option');
-  createOpt.value = '__new__';
-  createOpt.innerText = t('opt_create_new_rule');
-  if (selectedRuleId === '__new__') createOpt.selected = true;
-  select.appendChild(createOpt);
+      // 2. Entrée permanente de création
+      const createOpt = document.createElement('option');
+      createOpt.value = '__new__';
+      createOpt.innerText = t('opt_create_new_rule');
+      if (selectedRuleId === '__new__' || db.rules.length === 0) createOpt.selected = true;
+      select.appendChild(createOpt);
 
-  // Sélectionne l'option par défaut si aucune règle n'est choisie
-  if (!selectedRuleId) {
-    select.value = '';
-  }
+      if (select.value !== '__new__') {
+        previousSelectedRuleId = select.value;
+      }
 
-  if (select.value !== '__new__' && select.value !== '') {
-    previousSelectedRuleId = select.value;
-  }
+      const btnEdit = document.getElementById('btn-edit-selected-rule');
+      if (btnEdit) {
+        btnEdit.style.display = (db.rules.length > 0 && select.value !== '__new__') ? 'inline-flex' : 'none';
+      }
+    }
 
-  const btnEdit = document.getElementById('btn-edit-selected-rule');
-  if (btnEdit) {
-    btnEdit.style.display = (db.rules.length > 0 && select.value !== '__new__' && select.value !== '') ? 'inline-flex' : 'none';
-  }
-}
     function handleRuleDropdownChange(val) {
       if (val === '__new__') {
         openCreateRuleModal();
@@ -1477,17 +1470,17 @@
     }
 
     function closeRuleModal() {
-  document.getElementById('rule-modal').classList.remove('active');
-  document.body.style.overflow = '';
-  currentEditingRuleId = null;
+      document.getElementById('rule-modal').classList.remove('active');
+      document.body.style.overflow = '';
+      currentEditingRuleId = null;
 
-  const sel = document.getElementById('select-b-rule');
-  if (sel && sel.value === '__new__') {
-    sel.value = previousSelectedRuleId || '';
-  }
-}
+      const sel = document.getElementById('select-b-rule');
+      if (sel && sel.value === '__new__') {
+        sel.value = previousSelectedRuleId || (db.rules.length > 0 ? db.rules[0].id : '');
+      }
+    }
 
-    /* --- CROP ENGINE --- */
+    /* --- CROP ENGINE AVEC OPTION RETIRER LA PHOTO --- */
     function triggerAvatarUpload(bId, e) {
       if (e) e.stopPropagation();
       avatarTargetBeneficiaryId = bId;
@@ -1504,6 +1497,14 @@
         currentImg.onload = function() {
           cropX = 0; cropY = 0;
           document.getElementById('zoom-slider').value = 1;
+
+          // Si le proche a déjà un avatar photo, on affiche le bouton pour le retirer
+          const b = db.beneficiaries.find(i => i.id === avatarTargetBeneficiaryId);
+          const btnRemove = document.getElementById('btn-remove-avatar');
+          if (btnRemove) {
+            btnRemove.style.display = (b && b.avatar) ? 'block' : 'none';
+          }
+
           document.getElementById('crop-modal').classList.add('active');
           document.body.style.overflow = 'hidden';
           initCropCanvas();
@@ -1512,6 +1513,16 @@
       };
       reader.readAsDataURL(file);
       event.target.value = '';
+    }
+
+    function removeAvatarPhoto() {
+      const b = db.beneficiaries.find(i => i.id === avatarTargetBeneficiaryId);
+      if (b) {
+        b.avatar = null;
+        markUnsavedChanges();
+        renderTab2();
+      }
+      closeCropModal();
     }
 
     function initCropCanvas() {
@@ -1640,7 +1651,6 @@
       }
 
       document.getElementById('m-celeb-msg').innerText = msg;
-      document.getElementById('m-celeb-sub-total-val').innerText = fmt(totalTransferred);
 
       const personList = document.getElementById('m-celeb-per-person-list');
       personList.innerHTML = '';
@@ -2009,12 +2019,13 @@
         const progressPct = Math.min(100, Math.round((capVal / targetMilestone) * 100));
         const milestoneColor = getMilestoneColor(targetMilestone);
 
-        const stockPortfolioLabel = isEn ? 'Stock Portfolio' : 'Capital Bourse';
+        // Libellé court et naturel : "Portefeuille"
+        const stockPortfolioLabel = isEn ? 'Portfolio' : 'Portefeuille';
         const globalCapitalDisplay = capVal > 0 
-          ? `<div class="clickable-zone" onclick="openQuickCapModal('${b.id}', event)" title="${isEn ? 'Click to adjust stock portfolio' : 'Cliquer pour ajuster le Capital Bourse'}" style="font-size:0.75rem; color:var(--accent-blue); font-weight:bold; margin-top:2px;">
-               ${stockPortfolioLabel} : ${fmt(capVal)}
+          ? `<div class="clickable-zone" onclick="openQuickCapModal('${b.id}', event)" title="${isEn ? 'Click to adjust portfolio' : 'Cliquer pour ajuster le Portefeuille'}" style="font-size:0.75rem; color:var(--accent-blue); font-weight:bold;">
+               📈 ${stockPortfolioLabel} : ${fmt(capVal)}
              </div>`
-          : `<div class="clickable-zone" onclick="openQuickCapModal('${b.id}', event)" title="${isEn ? 'Click to add stock portfolio' : 'Cliquer pour ajouter le Capital Bourse'}" style="font-size:0.72rem; opacity:0.6; margin-top:2px;">
+          : `<div class="clickable-zone" onclick="openQuickCapModal('${b.id}', event)" title="${isEn ? 'Click to add portfolio' : 'Cliquer pour ajouter le Portefeuille'}" style="font-size:0.72rem; opacity:0.6;">
                + ${stockPortfolioLabel}
              </div>`;
 
@@ -2023,7 +2034,7 @@
         const ruleTitle = getRuleDisplayTitle(rule);
         
         const ruleHTML = ruleTitle 
-          ? `<span class="clickable-zone beneficiary-rule-text" onclick="viewRuleReadOnly('${rule.id}', event)" title="${isEn ? 'Click to view rule details' : 'Cliquer pour voir le détail de la règle'}">🏷️ ${ruleTitle}</span>` 
+          ? `<div class="clickable-zone beneficiary-rule-text" onclick="viewRuleReadOnly('${rule.id}', event)" title="${isEn ? 'Click to view rule details' : 'Cliquer pour voir le détail de la règle'}">🏷️ ${ruleTitle}</div>` 
           : '';
 
         const card = document.createElement('div');
@@ -2031,28 +2042,38 @@
         card.setAttribute('draggable', 'true');
         card.dataset.index = index;
 
-        // Le nom du proche est désormais dans une clickable-zone pour le renommer en 1 clic !
+        // Dispostion ultra-propre en 3 lignes à côté de l'avatar
         card.innerHTML = `
           <div class="pulse-card-header">
             <div class="pulse-avatar" onclick="triggerAvatarUpload('${b.id}', event)" title="${isEn ? 'Adjust photo' : 'Ajuster la photo du proche'}">
               ${avatarHTML}
             </div>
-            <div style="flex:1; display:flex; justify-content:space-between; align-items:flex-start;">
-              <div>
-                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                  <strong class="clickable-zone" onclick="promptRenameBeneficiary('${b.id}', event)" title="${isEn ? 'Click to rename' : 'Cliquer pour renommer'}" style="font-size:1rem; color:var(--text-bright);">
+            <div style="flex:1; display:flex; justify-content:space-between; align-items:flex-start; min-width:0;">
+              
+              <!-- 3 Lignes bien aérées sur smartphone -->
+              <div style="display:flex; flex-direction:column; gap:3px; min-width:0;">
+                <!-- Ligne 1 : Prénom (renommable en 1 clic) + 📜 + Badge plafond -->
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <strong class="clickable-zone" onclick="promptRenameBeneficiary('${b.id}', event)" title="${isEn ? 'Click to rename' : 'Cliquer pour renommer'}" style="font-size:1rem; color:var(--text-bright); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
                     ${b.name}
                   </strong>
-                  ${ruleHTML}
+                  <button class="history-scroll-btn" onclick="openHistoryModal('${b.id}')" title="📜 ${isEn ? 'History' : 'Historique'}">📜</button>
                   ${capBadge}
-                  <button class="history-scroll-btn" onclick="openHistoryModal('${b.id}')" title="📜 History & Charts">📜</button>
                 </div>
+
+                <!-- Ligne 2 : La Règle d'abondement -->
+                ${ruleHTML}
+
+                <!-- Ligne 3 : Portefeuille Bourse -->
                 ${globalCapitalDisplay}
               </div>
-              <div style="text-align:right;">
+
+              <!-- Montants à droite -->
+              <div style="text-align:right; flex-shrink:0; padding-left:8px;">
                 <div style="font-size:1.15rem; font-weight:900; color:var(--accent-yellow-bright);" title="${isEn ? 'Available reserve' : 'Réserve disponible'}">${fmt(currentReserve)}</div>
                 <div style="font-size:0.75rem; color:var(--accent-green-bright); font-weight:bold;" title="${isEn ? 'Total transferred' : 'Total déversé au proche'}">${t('card_transferred_label', { val: fmt(transferredVal) })}</div>
               </div>
+
             </div>
           </div>
 
@@ -2293,17 +2314,24 @@
       renderBeneficiariesList();
     }
 
-    /* --- RENDU ROBUSTE DES GRAPHIQUES SANS BUG DES "1 ET 1" --- */
-    function renderSingleChart(dataArray, valueKey, color, labelTitle, unitSymbol) {
+    /* --- RENDU DES GRAPHIQUES AVEC AFFICHAGE DYNAMIQUE EN HAUT À DROITE (COMME KLON) --- */
+    function updateChartHoverInfo(chartId, dateStr, valStr) {
+      const el = document.getElementById(`chart-hover-${chartId}`);
+      if (el) el.innerText = `${dateStr} : ${valStr}`;
+    }
+
+    function renderSingleChart(chartId, dataArray, valueKey, color, labelTitle) {
       const values = (dataArray || []).map(d => d[valueKey] || 0);
       const actualMax = Math.max(...values, 0);
+      const latestVal = values.length > 0 ? values[values.length - 1] : 0;
+      const initialRightText = t('hist_chart_latest', { val: fmt(latestVal) });
 
       if (!dataArray || dataArray.length < 2 || actualMax === 0) {
         return `
           <div class="history-chart-container">
             <div class="history-chart-title" style="color: ${color};">
               <span>${labelTitle}</span>
-              <span style="opacity:0.8;">${fmt(actualMax)}</span>
+              <span id="chart-hover-${chartId}" style="opacity:0.8; font-weight:bold;">${initialRightText}</span>
             </div>
             <div style="text-align: center; font-size: 0.75rem; opacity: 0.6; padding: 18px 0;">
               ${actualMax === 0 ? t('hist_chart_no_transfers') : t('hist_chart_min_records')}
@@ -2346,8 +2374,15 @@
       dataArray.forEach((d, idx) => {
         const x = getX(idx);
         const y = getY(d[valueKey]);
+        const val = d[valueKey] || 0;
+        const locale = db.lang === 'en' ? 'en-US' : 'fr-FR';
+        const dateStr = d.date ? new Date(d.date).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: '2-digit' }) : '';
+        const formattedVal = fmt(val);
+
         circlesHTML += `
-          <circle cx="${x}" cy="${y}" r="3.5" fill="var(--bg-color)" stroke="${color}" stroke-width="2" />
+          <circle cx="${x}" cy="${y}" r="4.5" fill="var(--bg-color)" stroke="${color}" stroke-width="2" style="cursor: pointer;"
+                  onclick="updateChartHoverInfo('${chartId}', '${dateStr}', '${formattedVal}')"
+                  onmouseenter="updateChartHoverInfo('${chartId}', '${dateStr}', '${formattedVal}')" />
         `;
       });
 
@@ -2355,7 +2390,7 @@
         <div class="history-chart-container">
           <div class="history-chart-title" style="color: ${color};">
             <span>${labelTitle}</span>
-            <span>${t('hist_chart_latest', { val: fmt(values[values.length - 1]) })}</span>
+            <span id="chart-hover-${chartId}" style="font-weight:bold; font-size:0.8rem;">${initialRightText}</span>
           </div>
           <svg width="100%" height="100" viewBox="0 0 ${W} ${H}" style="overflow: visible;">
             ${gridLinesHTML}
@@ -2399,8 +2434,8 @@
         });
       }
 
-      const chartCapitalHTML = renderSingleChart(timeSeries, 'capital', 'var(--accent-blue)', t('hist_cap_chart'), db.currency);
-      const chartTransferredHTML = renderSingleChart(timeSeries, 'transferred', 'var(--accent-green-bright)', t('hist_trans_chart'), db.currency);
+      const chartCapitalHTML = renderSingleChart('cap', timeSeries, 'capital', 'var(--accent-blue)', t('hist_cap_chart'));
+      const chartTransferredHTML = renderSingleChart('trans', timeSeries, 'transferred', 'var(--accent-green-bright)', t('hist_trans_chart'));
 
       let historyListHTML = '';
       if (!Array.isArray(b.history) || b.history.length === 0) {
@@ -2428,7 +2463,7 @@
             const isWithdraw = (h.amount > 0);
             const color = isWithdraw ? 'var(--accent-green-bright)' : 'var(--accent-yellow-bright)';
             const label = isWithdraw ? t('hist_type_withdraw') : t('hist_type_reload');
-            const sign = '+'; // Le déversement vers le proche est bien positif (+) !
+            const sign = '+';
             const valAbs = Math.abs(h.amount);
 
             historyListHTML += `
