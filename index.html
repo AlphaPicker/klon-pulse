@@ -2030,7 +2030,7 @@
         const stockPortfolioLabel = isEn ? 'Portfolio' : 'Portefeuille';
         const globalCapitalDisplay = capVal > 0 
           ? `<div class="clickable-zone" onclick="openQuickCapModal('${b.id}', event)" title="${isEn ? 'Click to adjust portfolio' : 'Cliquer pour ajuster le Portefeuille'}" style="font-size:0.75rem; color:var(--accent-blue); font-weight:bold;">
-               📈 ${stockPortfolioLabel} : ${fmt(capVal)}
+               ${stockPortfolioLabel} : ${fmt(capVal)}
              </div>`
           : `<div class="clickable-zone" onclick="openQuickCapModal('${b.id}', event)" title="${isEn ? 'Click to add portfolio' : 'Cliquer pour ajouter le Portefeuille'}" style="font-size:0.72rem; opacity:0.6;">
                + ${stockPortfolioLabel}
