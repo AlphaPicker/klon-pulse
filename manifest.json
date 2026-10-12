@@ -1,9 +1,9 @@
 {
-  "id": "/klon-pulse/",
-  "scope": "/klon-pulse/",
+  "id": "./",
+  "scope": "./",
   "name": "KLON Pulse",
   "short_name": "KLON Pulse",
-  "start_url": "/klon-pulse/index.html",
+  "start_url": "./index.html",
   "display_override": ["fullscreen", "standalone"],
   "display": "fullscreen",
   "background_color": "#0d1117",
